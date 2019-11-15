@@ -7,6 +7,8 @@ verify_ssl = true
 pytest = "*"
 ipdb = "*"
 kyoto-reader = {editable = true,path = "."}
+sphinx = "*"
+sphinx-autobuild = "*"
 
 [packages]
 
