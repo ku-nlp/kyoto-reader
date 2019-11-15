@@ -1,5 +1,4 @@
 import io
-import sys
 import copy
 import _pickle as cPickle
 import logging
@@ -19,14 +18,6 @@ from kyoto_reader.base_phrase import BasePhrase
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-
-"""
-# TODO
-
-# MEMO
-- corefタグは用言に対しても振られる
-- 用言かつ体言の基本句もある
-"""
 
 
 class KyotoReader:

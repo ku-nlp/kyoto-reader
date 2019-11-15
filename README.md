@@ -7,7 +7,7 @@
 ## Requirements
 
 - Python
-  - Verified Versions: 3.6,  3.7
+  - Verified Versions: 3.6, 3.7
 - pyknp 0.4.1
   - [pyknp (GitHub)](https://github.com/ku-nlp/pyknp)
 - JumanDIC

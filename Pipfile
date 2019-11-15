@@ -9,6 +9,8 @@ ipdb = "*"
 kyoto-reader = {editable = true,path = "."}
 sphinx = "*"
 sphinx-autobuild = "*"
+sphinx-autodoc-typehints = "*"
+recommonmark = "*"
 
 [packages]
 
