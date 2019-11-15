@@ -625,17 +625,3 @@ class Document:
 
     def __iter__(self):
         return iter(self.sid2sentence.values())
-
-
-def main():
-    reader = KWDLCReader(sys.argv[1],
-                         target_cases=ALL_CASES,
-                         target_corefs=ALL_COREFS,
-                         extract_nes=True)
-
-    documents: List[Document] = list(reader.process_all_documents())
-    print(documents)
-
-
-if __name__ == '__main__':
-    main()
