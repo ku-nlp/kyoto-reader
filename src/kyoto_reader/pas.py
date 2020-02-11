@@ -72,6 +72,10 @@ class Argument(BasePhrase, BaseArgument):
         return self.mention.eids
 
     @property
+    def eids_unc(self) -> Set[int]:
+        return self.mention.eids_unc
+
+    @property
     def midasi(self) -> str:
         """表記"""
         return self._midasi
@@ -156,7 +160,7 @@ class Pas:
     @staticmethod
     def _get_dep_type(pred: Tag, arg: Tag, sid_pred: str, sid_arg: str, case: str) -> str:
         if arg in pred.children:
-            if arg.features.get('係', None) == case.rstrip('？') + '格' or case in arg.features:
+            if arg.features.get('係', None) in ('ノ格', 'ノ？格') or case.lstrip('判') in arg.features:
                 return 'overt'
             else:
                 return 'dep'
