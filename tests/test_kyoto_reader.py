@@ -101,21 +101,21 @@ def test_pas(fixture_kyoto_reader: KyotoReader):
     assert len([_ for args in arguments.values() for _ in args]) == 1
     arg = arguments['ガ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('フェイズ', 7, 17, sid3, [15], 'dep', '')
+    assert tuple(arg) == ('フェイズ', 7, 17, sid3, [16], 'dep', '')
 
     arguments = document.get_arguments(predicates[10])
     assert predicates[10].midasi == 'フェイズに'
     assert len([_ for args in arguments.values() for _ in args]) == 1
     arg = arguments['ノ？'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('自分', 5, 15, sid3, [3, 4, 14], 'overt', '')
+    assert tuple(arg) == ('自分', 5, 15, sid3, [14], 'overt', '')
 
     arguments = document.get_arguments(predicates[11])
     assert predicates[11].midasi == '使用する事ができる。'
     assert len([_ for args in arguments.values() for _ in args]) == 5
     arg = arguments['ガ'][0]
     assert isinstance(arg, SpecialArgument)
-    assert tuple(arg) == ('不特定:人', [16], 'exo', '')
+    assert tuple(arg) == ('不特定:人', [17], 'exo', '')
     arg = arguments['ガ'][1]
     assert isinstance(arg, SpecialArgument)
     assert tuple(arg) == ('著者', [4], 'exo', '？')
@@ -124,74 +124,54 @@ def test_pas(fixture_kyoto_reader: KyotoReader):
     assert tuple(arg) == ('読者', [3], 'exo', '？')
     arg = arguments['ヲ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('効果', 1, 11, sid3, [17], 'dep', '')
+    assert tuple(arg) == ('効果', 1, 11, sid3, [18], 'dep', '')
     arg = arguments['ニ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('フェイズ', 7, 17, sid3, [15], 'overt', '')
+    assert tuple(arg) == ('フェイズ', 7, 17, sid3, [16], 'overt', '')
 
 
-def test_pas_relax1(fixture_kyoto_reader: KyotoReader):
-    document = fixture_kyoto_reader.process_document('w201106-0000060050')
-    predicates: List[Predicate] = document.get_predicates()
-    arguments = document.get_arguments(predicates[10], relax=True)
-    sid3 = 'w201106-0000060050-3'
-    assert predicates[10].midasi == 'フェイズに'
-    assert len([_ for args in arguments.values() for _ in args]) == 4
-    args = sorted(arguments['ノ？'], key=lambda a: a.midasi)
-    assert isinstance(args[0], SpecialArgument)
-    assert tuple(args[0]) == ('不特定:人', [14], 'exo', 'AND')
-    assert isinstance(args[1], Argument)
-    assert tuple(args[1]) == ('自分', 5, 15, sid3, [3, 4, 14], 'overt', '')
-    assert isinstance(args[2], SpecialArgument)
-    assert tuple(args[2]) == ('著者', [4], 'exo', 'AND')
-    assert isinstance(args[3], SpecialArgument)
-    assert tuple(args[3]) == ('読者', [3], 'exo', 'AND')
-
-
-def test_pas_relax2(fixture_kyoto_reader: KyotoReader):
+def test_pas_relax(fixture_kyoto_reader: KyotoReader):
     document = fixture_kyoto_reader.process_document('w201106-0000060560')
     predicates: List[Predicate] = document.get_predicates()
     arguments = document.get_arguments(predicates[9], relax=True)
-    sid1 = 'w201106-0000060560-1'
     sid2 = 'w201106-0000060560-2'
     sid3 = 'w201106-0000060560-3'
     assert predicates[9].midasi == 'ご協力の'
-    assert len([_ for args in arguments.values() for _ in args]) == 6
-    arg = arguments['ガ'][0]
-    assert isinstance(arg, Argument)
-    assert tuple(arg) == ('皆様', 1, 17, sid3, [14], 'intra', '')
-    arg = arguments['ガ'][1]
-    assert isinstance(arg, Argument)
-    assert tuple(arg) == ('ドクターの', 0, 16, sid3, [14], 'intra', 'AND')
-    arg = arguments['ガ'][2]
+    assert len([_ for args in arguments.values() for _ in args]) == 5
+    args = sorted(arguments['ガ'], key=lambda a: a.dtid)
+    arg = args[0]
     assert isinstance(arg, Argument)
     assert tuple(arg) == ('ドクターを', 2, 11, sid2, [14], 'inter', 'AND')
-    arg = arguments['ガ'][3]
+    arg = args[1]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('ドクターを', 7, 7, sid1, [14], 'inter', 'AND')
-    arg = arguments['ニ'][0]
-    assert isinstance(arg, SpecialArgument)
-    assert tuple(arg) == ('著者', [5], 'exo', '')
-    arg = arguments['ニ'][1]
+    assert tuple(arg) == ('ドクターの', 0, 16, sid3, [14], 'intra', 'AND')
+    arg = args[2]
+    assert isinstance(arg, Argument)
+    assert tuple(arg) == ('皆様', 1, 17, sid3, [14], 'intra', '')
+    args = sorted(arguments['ニ'], key=lambda a: a.midasi)
+    arg = args[0]
     assert isinstance(arg, Argument)
     assert tuple(arg) == ('コーナー', 5, 14, sid2, [11], 'inter', '？')
+    arg = args[1]
+    assert isinstance(arg, SpecialArgument)
+    assert tuple(arg) == ('著者', [5], 'exo', '')
 
 
 def test_coref1(fixture_kyoto_reader: KyotoReader):
     document = fixture_kyoto_reader.process_document('w201106-0000060050')
     entities: Dict[int, Entity] = document.entities
-    assert len(entities) == 18
+    assert len(entities) == 19
 
     entity = entities[0]
     assert (entity.taigen, entity.yougen) == (None, None)
     assert entity.exophor == '不特定:人'
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 0
 
     entity = entities[1]
     assert (entity.taigen, entity.yougen) == (True, False)
     assert entity.exophor is None
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
     assert (mentions[0].midasi, mentions[0].dtid) == ('コイン', 0)
     assert mentions[0].eids == {1}
@@ -199,29 +179,31 @@ def test_coref1(fixture_kyoto_reader: KyotoReader):
     entity = entities[2]
     assert (entity.taigen, entity.yougen) == (None, None)
     assert entity.exophor == '不特定:人'
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 0
 
     entity = entities[3]
     assert (entity.taigen, entity.yougen) == (True, False)
     assert entity.exophor == '読者'
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
     assert (mentions[0].midasi, mentions[0].dtid) == ('自分の', 15)
-    assert mentions[0].eids == {3, 4, 14}
+    assert mentions[0].eids == {14}
+    assert mentions[0].eids_unc == {3, 4, 15}
 
     entity = entities[4]
     assert (entity.taigen, entity.yougen) == (True, False)
     assert entity.exophor == '著者'
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
     assert (mentions[0].midasi, mentions[0].dtid) == ('自分の', 15)
-    assert mentions[0].eids == {3, 4, 14}
+    assert mentions[0].eids == {14}
+    assert mentions[0].eids_unc == {3, 4, 15}
 
     entity = entities[5]
     assert (entity.taigen, entity.yougen) == (True, False)
     assert entity.exophor is None
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
     assert (mentions[0].midasi, mentions[0].dtid) == ('トスを', 1)
     assert mentions[0].eids == {5}
@@ -229,7 +211,7 @@ def test_coref1(fixture_kyoto_reader: KyotoReader):
     entity = entities[6]
     assert (entity.taigen, entity.yougen) == (True, False)
     assert entity.exophor is None
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
     assert (mentions[0].midasi, mentions[0].dtid) == ('表が', 4)
     assert mentions[0].eids == {6}
@@ -237,7 +219,7 @@ def test_coref1(fixture_kyoto_reader: KyotoReader):
     entity = entities[7]
     assert (entity.taigen, entity.yougen) == (True, False)
     assert entity.exophor is None
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
     assert (mentions[0].midasi, mentions[0].dtid) == ('数だけ、', 6)
     assert mentions[0].eids == {7}
@@ -245,7 +227,7 @@ def test_coref1(fixture_kyoto_reader: KyotoReader):
     entity = entities[8]
     assert (entity.taigen, entity.yougen) == (False, True)
     assert entity.exophor is None
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
     assert (mentions[0].midasi, mentions[0].dtid) == ('出た', 5)
     assert mentions[0].eids == {8}
@@ -253,7 +235,7 @@ def test_coref1(fixture_kyoto_reader: KyotoReader):
     entity = entities[9]
     assert (entity.taigen, entity.yougen) == (True, False)
     assert entity.exophor is None
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
     assert (mentions[0].midasi, mentions[0].dtid) == ('フィールド上の', 7)
     assert mentions[0].eids == {9}
@@ -261,7 +243,7 @@ def test_coref1(fixture_kyoto_reader: KyotoReader):
     entity = entities[10]
     assert (entity.taigen, entity.yougen) == (True, False)
     assert entity.exophor is None
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
     assert (mentions[0].midasi, mentions[0].dtid) == ('モンスターを', 8)
     assert mentions[0].eids == {10}
@@ -269,13 +251,13 @@ def test_coref1(fixture_kyoto_reader: KyotoReader):
     entity = entities[11]
     assert (entity.taigen, entity.yougen) == (None, None)
     assert entity.exophor == '不特定:状況'
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 0
 
     entity = entities[12]
     assert (entity.taigen, entity.yougen) == (False, True)
     assert entity.exophor is None
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
     assert (mentions[0].midasi, mentions[0].dtid) == ('破壊する。', 9)
     assert mentions[0].eids == {12}
@@ -283,56 +265,106 @@ def test_coref1(fixture_kyoto_reader: KyotoReader):
     entity = entities[13]
     assert (entity.taigen, entity.yougen) == (True, False)
     assert entity.exophor is None
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
     assert (mentions[0].midasi, mentions[0].dtid) == ('ターンに', 13)
     assert mentions[0].eids == {13}
 
     entity = entities[14]
     assert (entity.taigen, entity.yougen) == (True, False)
-    assert entity.exophor == '不特定:人'
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    assert entity.exophor is None
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
     assert (mentions[0].midasi, mentions[0].dtid) == ('自分の', 15)
-    assert mentions[0].eids == {3, 4, 14}
+    assert mentions[0].eids == {14}
 
     entity = entities[15]
     assert (entity.taigen, entity.yougen) == (True, False)
-    assert entity.exophor is None
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    assert entity.exophor == '不特定:人'
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
-    assert (mentions[0].midasi, mentions[0].dtid) == ('フェイズに', 17)
-    assert mentions[0].eids == {15}
+    assert (mentions[0].midasi, mentions[0].dtid) == ('自分の', 15)
+    assert mentions[0].eids == {14}
 
     entity = entities[16]
-    assert (entity.taigen, entity.yougen) == (None, None)
-    assert entity.exophor == '不特定:人'
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
-    assert len(mentions) == 0
-
-    entity = entities[17]
     assert (entity.taigen, entity.yougen) == (True, False)
     assert entity.exophor is None
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
+    assert len(mentions) == 1
+    assert (mentions[0].midasi, mentions[0].dtid) == ('フェイズに', 17)
+    assert mentions[0].eids == {16}
+
+    entity = entities[17]
+    assert (entity.taigen, entity.yougen) == (None, None)
+    assert entity.exophor == '不特定:人'
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
+    assert len(mentions) == 0
+
+    entity = entities[18]
+    assert (entity.taigen, entity.yougen) == (True, False)
+    assert entity.exophor is None
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 1
     assert (mentions[0].midasi, mentions[0].dtid) == ('効果は', 11)
-    assert mentions[0].eids == {17}
+    assert mentions[0].eids == {18}
 
 
 def test_coref2(fixture_kyoto_reader: KyotoReader):
     document = fixture_kyoto_reader.process_document('w201106-0000060560')
     entities: Dict[int, Entity] = document.entities
-    assert len(entities) == 14
+    assert len(entities) == 15
 
     entity: Entity = entities[14]
     assert (entity.taigen, entity.yougen) == (True, False)
     assert entity.exophor is None
-    mentions: List[Mention] = sorted(entity.mentions, key=lambda x: x.dtid)
+    mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 4
-    assert (mentions[0].midasi, mentions[0].dtid, mentions[0].eids) == ('ドクターを', 7, {14})
+    assert (mentions[0].midasi, mentions[0].dtid, mentions[0].eids) == ('ドクターを', 7, {4})
     assert (mentions[1].midasi, mentions[1].dtid, mentions[1].eids) == ('ドクターを', 11, {14})
     assert (mentions[2].midasi, mentions[2].dtid, mentions[2].eids) == ('ドクターの', 16, {14})
     assert (mentions[3].midasi, mentions[3].dtid, mentions[3].eids) == ('皆様', 17, {14})
+
+
+def test_coref_link1(fixture_kyoto_reader: KyotoReader):
+    document = fixture_kyoto_reader.process_document('w201106-0000060050')
+    for entity in document.entities.values():
+        for mention in entity.mentions:
+            assert entity.eid in mention.eids
+        for mention in entity.mentions_unc:
+            assert entity.eid in mention.eids_unc
+    for mention in document.mentions.values():
+        for eid in mention.eids:
+            assert mention in document.entities[eid].mentions
+        for eid in mention.eids_unc:
+            assert mention in document.entities[eid].mentions_unc
+
+
+def test_coref_link2(fixture_kyoto_reader: KyotoReader):
+    document = fixture_kyoto_reader.process_document('w201106-0000060560')
+    for entity in document.entities.values():
+        for mention in entity.mentions:
+            assert entity.eid in mention.eids
+        for mention in entity.mentions_unc:
+            assert entity.eid in mention.eids_unc
+    for mention in document.mentions.values():
+        for eid in mention.eids:
+            assert mention in document.entities[eid].mentions
+        for eid in mention.eids_unc:
+            assert mention in document.entities[eid].mentions_unc
+
+
+def test_coref_link3(fixture_kyoto_reader: KyotoReader):
+    document = fixture_kyoto_reader.process_document('w201106-0000060877')
+    for entity in document.entities.values():
+        for mention in entity.mentions:
+            assert entity.eid in mention.eids
+        for mention in entity.mentions_unc:
+            assert entity.eid in mention.eids_unc
+    for mention in document.mentions.values():
+        for eid in mention.eids:
+            assert mention in document.entities[eid].mentions
+        for eid in mention.eids_unc:
+            assert mention in document.entities[eid].mentions_unc
 
 
 def test_ne(fixture_kyoto_reader: KyotoReader):
