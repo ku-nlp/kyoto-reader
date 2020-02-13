@@ -10,11 +10,10 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
-sys.path.insert(0, os.path.abspath('../../src'))
-print(sys.path)
-
+# import os
+# import sys
+# sys.path.insert(0, os.path.abspath('../../src/kyoto_reader'))
+# sys.path.insert(0, os.path.abspath('../../src'))
 
 # -- Project information -----------------------------------------------------
 
@@ -22,6 +21,7 @@ project = 'kyoto-reader'
 copyright = "2020, 'Kurohashi-Kawahara Lab'"
 author = "'Kurohashi-Kawahara Lab'"
 
+version = open('../../src/kyoto_reader/VERSION').read().strip()
 
 # -- General configuration ---------------------------------------------------
 
@@ -33,25 +33,21 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.viewcode',
     'sphinx.ext.todo',
-    'sphinx.ext.napoleon',
+    'sphinx.ext.napoleon',  # Google スタイルの docstring を tst に変換する
     'sphinx_autodoc_typehints',
     'recommonmark',
 ]
 autosummary_generate = True
-autodoc_default_flags = [
-    'members',
-    # 'private-members',
-    'no-undoc-members',
-    'show-inheritance',
-]
+autodoc_default_options = {
+    # 'members': 'base_phrase, constants',
+    'member-order': 'bysource',
+    'special-members': '__init__',
+    'undoc-members': False,
+    'show-inheritance': True,
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
-
-# The suffix(es) of source filenames.
-# You can specify multiple suffix as a list of string:
-#
-from recommonmark.transform import AutoStructify
 
 source_suffix = {
     '.rst': 'restructuredtext',
@@ -74,6 +70,9 @@ language = 'en'
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# The name of the Pygments (syntax highlighting) style to use.
+pygments_style = 'sphinx'
+
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -88,6 +87,10 @@ html_theme = 'alabaster'
 html_static_path = ['_static']
 
 
+from recommonmark.parser import CommonMarkParser
+from recommonmark.transform import AutoStructify
+
+
 # recommonmark の拡張利用
 def setup(app):
     github_doc_root = 'https://github.com/rtfd/recommonmark/tree/master/doc/'
@@ -99,4 +102,5 @@ def setup(app):
         # 'enable_eval_rst': True,
         # 'enable_auto_doc_ref': True,
     }, True)
+    app.add_source_parser(CommonMarkParser, override=True)
     app.add_transform(AutoStructify)
