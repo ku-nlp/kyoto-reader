@@ -134,18 +134,22 @@ def test_pas_relax(fixture_kyoto_reader: KyotoReader):
     document = fixture_kyoto_reader.process_document('w201106-0000060560')
     predicates: List[Predicate] = document.get_predicates()
     arguments = document.get_arguments(predicates[9], relax=True)
+    sid1 = 'w201106-0000060560-1'
     sid2 = 'w201106-0000060560-2'
     sid3 = 'w201106-0000060560-3'
     assert predicates[9].midasi == 'ご協力の'
-    assert len([_ for args in arguments.values() for _ in args]) == 5
+    assert len([_ for args in arguments.values() for _ in args]) == 6
     args = sorted(arguments['ガ'], key=lambda a: a.dtid)
     arg = args[0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('ドクターを', 2, 11, sid2, [14], 'inter', 'AND')
+    assert tuple(arg) == ('ドクターを', 7, 7, sid1, [4], 'inter', 'AND')
     arg = args[1]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('ドクターの', 0, 16, sid3, [14], 'intra', 'AND')
+    assert tuple(arg) == ('ドクターを', 2, 11, sid2, [14], 'inter', 'AND')
     arg = args[2]
+    assert isinstance(arg, Argument)
+    assert tuple(arg) == ('ドクターの', 0, 16, sid3, [14], 'intra', 'AND')
+    arg = args[3]
     assert isinstance(arg, Argument)
     assert tuple(arg) == ('皆様', 1, 17, sid3, [14], 'intra', '')
     args = sorted(arguments['ニ'], key=lambda a: a.midasi)

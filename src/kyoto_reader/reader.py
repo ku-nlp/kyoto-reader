@@ -572,11 +572,11 @@ class Document:
         if relax is True:
             for case, args in self._pas[predicate.dtid].arguments.items():
                 for arg in args:
-                    for eid in arg.eids:
+                    for eid in (arg.all_eids if isinstance(arg, Argument) else arg.eids):
                         entity = self.entities[eid]
                         if entity.is_special and entity.exophor != arg.midasi:
                             pas.add_special_argument(case, entity.exophor, entity.eid, 'AND')
-                        for mention in entity.mentions:
+                        for mention in entity.all_mentions:
                             if isinstance(arg, Argument) and mention.dtid == arg.dtid:
                                 continue
                             pas.add_argument(case, mention, mention.midasi, 'AND', self.mrph2dmid)

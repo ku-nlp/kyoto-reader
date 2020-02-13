@@ -76,6 +76,10 @@ class Argument(BasePhrase, BaseArgument):
         return self.mention.eids_unc
 
     @property
+    def all_eids(self) -> Set[int]:
+        return self.mention.all_eids
+
+    @property
     def midasi(self) -> str:
         """表記"""
         return self._midasi
