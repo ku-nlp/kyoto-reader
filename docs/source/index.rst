@@ -1,5 +1,5 @@
 .. kyoto-reader documentation master file, created by
-   sphinx-quickstart on Fri Nov 15 22:20:08 2019.
+   sphinx-quickstart on Thu Feb 13 17:17:28 2020.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 

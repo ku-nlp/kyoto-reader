@@ -12,15 +12,15 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../src/kwdlc_reader'))
-sys.path.insert(0, os.path.abspath('../src/'))
+sys.path.insert(0, os.path.abspath('../../src'))
+print(sys.path)
 
 
 # -- Project information -----------------------------------------------------
 
 project = 'kyoto-reader'
-copyright = '2019, Kurohashi-Kawahara Lab, Kyoto University'
-author = 'Kurohashi-Kawahara Lab'
+copyright = "2020, 'Kurohashi-Kawahara Lab'"
+author = "'Kurohashi-Kawahara Lab'"
 
 
 # -- General configuration ---------------------------------------------------
@@ -35,6 +35,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints',
+    'recommonmark',
 ]
 autosummary_generate = True
 autodoc_default_flags = [
@@ -50,23 +51,12 @@ templates_path = ['_templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-from recommonmark.parser import CommonMarkParser
 from recommonmark.transform import AutoStructify
 
-source_suffix = ['.rst', '.md']
-source_parsers = {
-    '.md': CommonMarkParser,
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
 }
-
-
-# recommonmark の拡張利用
-def setup(app):
-    github_doc_root = 'https://github.com/rtfd/recommonmark/tree/master/doc/'
-    app.add_config_value('recommonmark_config', {
-            'url_resolver': lambda url: github_doc_root + url,
-            'auto_toc_tree_section': 'Contents',
-            }, True)
-    app.add_transform(AutoStructify)
 
 
 # The master toctree document.
@@ -96,3 +86,17 @@ html_theme = 'alabaster'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+
+# recommonmark の拡張利用
+def setup(app):
+    github_doc_root = 'https://github.com/rtfd/recommonmark/tree/master/doc/'
+    app.add_config_value('recommonmark_config', {
+        'url_resolver': lambda url: github_doc_root + url,
+        'auto_toc_tree_section': 'Contents',
+        # 'enable_math': False,
+        # 'enable_inline_math': False,
+        # 'enable_eval_rst': True,
+        # 'enable_auto_doc_ref': True,
+    }, True)
+    app.add_transform(AutoStructify)
