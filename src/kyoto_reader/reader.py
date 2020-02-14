@@ -1,5 +1,4 @@
 import io
-import sys
 import copy
 import _pickle as cPickle
 import logging
