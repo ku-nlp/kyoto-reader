@@ -21,7 +21,7 @@ project = 'kyoto-reader'
 copyright = "2020, 'Kurohashi-Kawahara Lab'"
 author = "'Kurohashi-Kawahara Lab'"
 
-version = open('../../src/kyoto_reader/VERSION').read().strip()
+version = open('../src/kyoto_reader/VERSION').read().strip()
 
 # -- General configuration ---------------------------------------------------
 
