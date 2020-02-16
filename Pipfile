@@ -11,6 +11,7 @@ sphinx = "*"
 sphinx-autobuild = "*"
 sphinx-autodoc-typehints = "*"
 recommonmark = "*"
+twine = "*"
 
 [packages]
 
