@@ -35,7 +35,7 @@ Install kyoto-reader
 
 .. code-block:: none
 
-    $ pip install kyoto_reader
+    $ pip install kyoto-reader
 
 or
 

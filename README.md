@@ -16,7 +16,7 @@
 ## Installation
 
 ```zsh
-$ pip install kyoto-reader (not available yet)
+$ pip install kyoto-reader
 ```
 
 or
