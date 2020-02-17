@@ -93,7 +93,7 @@ Usage
                         extract_nes=True)
    print('読み込んだ文書:')
    for did, source in reader.did2source.items():
-       print(f'  文書ID: {did}, source: {source}')
+       print(f'  {source} (文書ID: {did})')
 
    print('\n--- 述語項構造 ---')
    document: Document = reader.process_document('w201106-0000060050')
@@ -111,7 +111,7 @@ Usage
 .. code-block:: none
 
    読み込んだ文書:
-     文書ID: w201106-0000060050, source: w201106-0000060050.knp
+     w201106-0000060050.knp (文書ID: w201106-0000060050)
 
    --- 述語項構造 ---
    述語: トスを
