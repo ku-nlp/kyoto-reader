@@ -9,3 +9,8 @@ test-deploy: build
 .PHONY: build
 build:
 	python setup.py sdist --formats=zip
+
+.PHONY: build-doc
+build-doc:
+	sphinx-apidoc -ef -o docs/source src/kyoto_reader
+	cd docs && make html
