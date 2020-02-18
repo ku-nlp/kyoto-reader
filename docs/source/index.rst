@@ -3,17 +3,20 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-================================================
-kyoto-reader: A parser for KWDLC and KyotoCorpus
-================================================
+===================================================
+kyoto-reader: A processor for KWDLC and KyotoCorpus
+===================================================
 
 
 About
 ========================
 
-京都大学ウェブ文書リードコーパス (KWDLC) や京都大学テキストコーパス (KyotoCorpus) をパースし、
-照応関係や共参照関係を扱うためのインターフェースを提供します。
+京都大学ウェブ文書リードコーパス (KWDLC_) や京都大学テキストコーパス (KyotoCorpus_) をパースし、
+述語項構造や共参照関係を扱うためのインターフェースを提供します。
 このツールは pyknp のラッパーであるため、形態素情報や係り受け関係なども扱えます。
+
+.. _KWDLC: https://github.com/ku-nlp/KWDLC
+.. _KyotoCorpus: https://github.com/ku-nlp/KyotoCorpus
 
 
 Requirements
@@ -22,12 +25,10 @@ Requirements
 - Python
     -  Verified Versions: 3.6, 3.7
 - `pyknp 0.4.1`_
-- JumanDIC
-    - optional
-    - included in `JUMAN++`_
+.. - JumanDIC_ (optional)
 
 .. _`pyknp 0.4.1`: https://github.com/ku-nlp/pyknp
-.. _JUMAN++: http://nlp.ist.i.kyoto-u.ac.jp/index.php?JUMAN++
+.. _JumanDIC: https://github.com/ku-nlp/JumanDIC
 
 
 Install kyoto-reader
@@ -46,7 +47,7 @@ or
     $ python setup.py install [--prefix=path]
 
 
-A Simple Explanation of KWDLC/KyotoCorpus
+A Brief Explanation of KWDLC/KyotoCorpus
 ================================================
 
 | KWDLC と KyotoCorpus はどちらも日本語の文書に対して形態素や構文情報の他、述語項構造や共参照関係が人手で付与されたコーパス。
@@ -87,10 +88,12 @@ Usage
    from typing import List
    from kyoto_reader import KyotoReader, Document, Predicate
 
-   reader = KyotoReader(Path('w201106-0000060050.knp'),
-                        target_cases=['ガ', 'ヲ', 'ニ'],
-                        target_corefs=['=', '=構', '=≒', '=構≒'],
-                        extract_nes=True)
+   # 文書集合を扱うオブジェクト
+   reader = KyotoReader(Path('w201106-0000060050.knp'),  # ファイルまたはディレクトリを Path オブジェクトで指定する
+                        target_cases=['ガ', 'ヲ', 'ニ'],  # ガ,ヲ,ニ格のみを対象とする
+                        target_corefs=['=', '=構', '=≒', '=構≒'],  # 共参照として扱う関係を列挙
+                        extract_nes=True  # 固有表現もコーパスから抽出する
+                        )
    print('読み込んだ文書:')
    for did, source in reader.did2source.items():
        print(f'  {source} (文書ID: {did})')

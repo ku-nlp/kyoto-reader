@@ -1,7 +1,7 @@
 # kyoto-reader: Parser for KWDLC and KyotoCorpus
 
-京都大学ウェブ文書リードコーパス (KWDLC) および京大コーパス (KyotoCorpus) のパーサー。
-
+京都大学ウェブ文書リードコーパス ([KWDLC](https://github.com/ku-nlp/KWDLC))
+および京都大学テキストコーパス ([KyotoCorpus](https://github.com/ku-nlp/KyotoCorpus)) のパーサー。  
 コーパス文書中から形態素・係り受け関係・述語項構造・共参照関係・固有表現情報を抽出します。
 
 ## Requirements
@@ -10,7 +10,7 @@
   - Verified Versions: 3.6, 3.7
 - pyknp 0.4.1
   - [pyknp (GitHub)](https://github.com/ku-nlp/pyknp)
-- JumanDIC
+- JumanDIC (optional)
   - [JumanDIC (GitHub)](https://github.com/ku-nlp/JumanDIC)
 
 ## Installation
