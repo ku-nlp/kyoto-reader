@@ -37,7 +37,9 @@ extensions = [
     'sphinx_autodoc_typehints',
     'recommonmark',
 ]
+
 autosummary_generate = True
+
 autodoc_default_options = {
     # 'members': 'base_phrase, constants',
     'member-order': 'bysource',
@@ -87,25 +89,6 @@ html_theme = 'alabaster'
 html_static_path = ['_static']
 
 
-from recommonmark.parser import CommonMarkParser
-from recommonmark.transform import AutoStructify
-
-
-# recommonmark の拡張利用
-def setup(app):
-    github_doc_root = 'https://github.com/rtfd/recommonmark/tree/master/doc/'
-    app.add_config_value('recommonmark_config', {
-        'url_resolver': lambda url: github_doc_root + url,
-        'auto_toc_tree_section': 'Contents',
-        # 'enable_math': False,
-        # 'enable_inline_math': False,
-        # 'enable_eval_rst': True,
-        # 'enable_auto_doc_ref': True,
-    }, True)
-    app.add_source_parser(CommonMarkParser, override=True)
-    app.add_transform(AutoStructify)
-
-
 # -- Options for LaTeX output ------------------------------------------------
 
 latex_elements = {
@@ -131,7 +114,50 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'kyoto-reader.tex', 'kyoto-reader Documentation',
-     'Author', 'manual'),
+     'Kurohashi-Kawahara Lab', 'manual'),
 ]
+
 latex_docclass = {'mydocument': 'jsbook'}
+
 latex_engine = 'platex'
+
+
+# -- Options for manual page output ---------------------------------------
+
+# One entry per manual page. List of tuples
+# (source start file, name, description, authors, manual section).
+man_pages = [
+    (master_doc, 'kyoto-reader', 'kyoto-reader Documentation',
+     [author], 1)
+]
+
+
+# -- Options for Texinfo output -------------------------------------------
+
+# Grouping the document tree into Texinfo files. List of tuples
+# (source start file, target name, title, author,
+#  dir menu entry, description, category)
+texinfo_documents = [
+    (master_doc, 'kyoto-reader', 'kyoto-reader Documentation',
+     author, 'kyoto-reader', 'One line description of project.',
+     'Miscellaneous'),
+]
+
+
+from recommonmark.parser import CommonMarkParser
+from recommonmark.transform import AutoStructify
+
+
+# At the bottom of conf.py
+def setup(app):
+    github_doc_root = 'https://github.com/rtfd/recommonmark/tree/master/doc/'
+    app.add_config_value('recommonmark_config', {
+        'url_resolver': lambda url: github_doc_root + url,
+        'auto_toc_tree_section': 'Contents',
+        # 'enable_math': False,
+        # 'enable_inline_math': False,
+        # 'enable_eval_rst': True,
+        # 'enable_auto_doc_ref': True,
+    }, True)
+    app.add_source_parser(CommonMarkParser, override=True)
+    app.add_transform(AutoStructify)
