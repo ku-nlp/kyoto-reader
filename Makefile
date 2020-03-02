@@ -1,10 +1,10 @@
 .PHONY: deploy
 deploy: build
-	twine upload dist/*
+	twine upload --skip-existing dist/*
 
 .PHONY: test-deploy
 test-deploy: build
-	twine upload -r pypitest dist/*
+	twine upload --skip-existing -r pypitest dist/*
 
 .PHONY: build
 build:
