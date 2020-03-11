@@ -11,7 +11,29 @@ from kyoto_reader.coreference import Mention
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-Predicate = BasePhrase
+
+class Predicate(BasePhrase):
+    """述語を表すオブジェクト"""
+    def __init__(self, bp: BasePhrase, mrph2dmid):
+        super().__init__(bp.tag, bp.dtid, bp.sid, mrph2dmid)
+
+    @property
+    def midasi(self) -> str:
+        mrph_list = self.tag.mrph_list()
+        sidx = 0
+        for i, mrph in enumerate(mrph_list):
+            if mrph.hinsi not in ('助詞', '特殊'):
+                sidx += i
+                break
+        eidx = len(mrph_list)
+        for i, mrph in enumerate(reversed(mrph_list)):
+            if mrph.hinsi not in ('助詞', '特殊'):
+                eidx -= i
+                break
+        ret = ''.join(mrph.midasi for mrph in mrph_list[sidx:eidx])
+        if not ret:
+            ret = self.tag.midasi
+        return ret
 
 
 class BaseArgument:
@@ -50,14 +72,13 @@ class Argument(BasePhrase, BaseArgument):
 
     Args:
         mention (Mention): メンション
-        midasi (str): 表記
         dep_type (str): 係り受けタイプ ("overt", "dep", "intra", "inter", "exo")
         mode (str): モード
+        mrph2dmid (dict): 形態素とその文書レベルIDを紐付ける辞書
     """
 
     def __init__(self,
                  mention: Mention,
-                 midasi: str,
                  dep_type: str,
                  mode: str,
                  mrph2dmid: Dict[Morpheme, int]
@@ -65,7 +86,6 @@ class Argument(BasePhrase, BaseArgument):
         super(Argument, self).__init__(mention.tag, mention.dtid, mention.sid, mrph2dmid)  # initialize BasePhrase
         super(BasePhrase, self).__init__(dep_type, mode)  # initialize BaseArgument
         self.mention = mention
-        self._midasi = midasi
 
     @property
     def eids(self) -> Set[int]:
@@ -82,7 +102,7 @@ class Argument(BasePhrase, BaseArgument):
     @property
     def midasi(self) -> str:
         """表記"""
-        return self._midasi
+        return self.mention.midasi
 
     # for test
     def __iter__(self):
@@ -150,14 +170,14 @@ class Pas:
         arguments (dict): 格と項
     """
 
-    def __init__(self, pred_bp: BasePhrase):
+    def __init__(self, pred_bp: BasePhrase, mrph2dmid):
         # self.predicate = Predicate(pred_bp.tag, pred_bp.dtid, pred_bp.sid)
-        self.predicate: Predicate = pred_bp
+        self.predicate: Predicate = Predicate(pred_bp, mrph2dmid)
         self.arguments: Dict[str, List[BaseArgument]] = defaultdict(list)
 
-    def add_argument(self, case: str, mention: Mention, target: str, mode: str, mrph2dmid: Dict[Morpheme, int]):
+    def add_argument(self, case: str, mention: Mention, mode: str, mrph2dmid: Dict[Morpheme, int]):
         dep_type = self._get_dep_type(self.predicate.tag, mention.tag, self.predicate.sid, mention.sid, case)
-        argument = Argument(mention, target, dep_type, mode, mrph2dmid)
+        argument = Argument(mention, dep_type, mode, mrph2dmid)
         if argument not in self.arguments[case]:
             self.arguments[case].append(argument)
 

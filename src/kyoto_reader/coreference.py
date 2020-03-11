@@ -29,6 +29,24 @@ class Mention(BasePhrase):
     def all_eids(self) -> Set[int]:
         return self.eids | self.eids_unc
 
+    @property
+    def midasi(self) -> str:
+        mrph_list = self.tag.mrph_list()
+        sidx = 0
+        for i, mrph in enumerate(mrph_list):
+            if mrph.hinsi not in ('助詞', '特殊'):
+                sidx += i
+                break
+        eidx = len(mrph_list)
+        for i, mrph in enumerate(reversed(mrph_list)):
+            if mrph.hinsi not in ('助詞', '特殊'):
+                eidx -= i
+                break
+        ret = ''.join(mrph.midasi for mrph in mrph_list[sidx:eidx])
+        if not ret:
+            ret = self.tag.midasi
+        return ret
+
     def is_uncertain_to(self, entity: 'Entity') -> bool:
         if entity.eid in self.eids:
             return False

@@ -207,7 +207,7 @@ class Document:
         for tag in self.tag_list():
             if tag.pas is None:
                 continue
-            pas = Pas(BasePhrase(tag, self.tag2dtid[tag], tag.pas.sid, self.mrph2dmid))
+            pas = Pas(BasePhrase(tag, self.tag2dtid[tag], tag.pas.sid, self.mrph2dmid), self.mrph2dmid)
             for case, arguments in tag.pas.arguments.items():
                 if self.relax_cases:
                     if case in ALL_CASES and case.endswith('≒'):
@@ -222,7 +222,7 @@ class Document:
                         sid = self.sentences[sid2idx[arg.sid] - arg.sdist].sid
                         arg_bp = self._get_bp(sid, arg.tid)
                         mention = self._create_mention(arg_bp)
-                        pas.add_argument(case, mention, arg.midasi, '', self.mrph2dmid)
+                        pas.add_argument(case, mention, '', self.mrph2dmid)
             if pas.arguments:
                 self._pas[pas.dtid] = pas
 
@@ -249,7 +249,7 @@ class Document:
                     rels.append(rel)
             src_bp = BasePhrase(tag, self.tag2dtid[tag], tag2sid[tag], self.mrph2dmid)
             # extract PAS
-            pas = Pas(src_bp)
+            pas = Pas(src_bp, self.mrph2dmid)
             for rel in rels:
                 if rel.atype in self.cases:
                     if rel.sid is not None:
@@ -259,7 +259,7 @@ class Document:
                             continue
                         # 項を発見したら同時に mention と entity を作成
                         mention = self._create_mention(arg_bp)
-                        pas.add_argument(rel.atype, mention, rel.target, rel.mode, self.mrph2dmid)
+                        pas.add_argument(rel.atype, mention, rel.mode, self.mrph2dmid)
                     # exophora
                     else:
                         if rel.target == 'なし':
@@ -578,7 +578,7 @@ class Document:
                         for mention in entity.all_mentions:
                             if isinstance(arg, Argument) and mention.dtid == arg.dtid:
                                 continue
-                            pas.add_argument(case, mention, mention.midasi, 'AND', self.mrph2dmid)
+                            pas.add_argument(case, mention, 'AND', self.mrph2dmid)
 
         return pas.arguments
 
@@ -632,12 +632,10 @@ class Document:
                 tgt_mentions = [tgt for tgt in self.get_siblings(src_mention) if tgt.dtid < src_mention.dtid]
                 targets = set()
                 for tgt_mention in tgt_mentions:
-                    target = ''.join(mrph.midasi for mrph in tgt_mention.tag.mrph_list() if '<助詞>' not in mrph.fstring)
-                    if not target:
-                        target = tgt_mention.midasi
-                    if all_midasis.count(tgt_mention.midasi) > 1:
+                    target = tgt_mention.midasi
+                    if all_midasis.count(target) > 1:
                         target += str(tgt_mention.dtid)
-                    targets.add(target + str(tgt_mention.dtid))
+                    targets.add(target)
                 for eid in src_mention.eids:
                     entity = self.entities[eid]
                     if entity.is_special:
