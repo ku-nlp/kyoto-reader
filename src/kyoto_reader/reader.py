@@ -122,8 +122,8 @@ class Document:
     Args:
         knp_string (str): 文書ファイルの内容(knp形式)
         doc_id (str): 文書ID
-        target_cases (list): 抽出の対象とする格
-        target_corefs (list): 抽出の対象とする共参照関係(=など)
+        cases (List[str]): 抽出の対象とする格
+        corefs (List[str]): 抽出の対象とする共参照関係(=など)
         relax_cases (bool): ガ≒格などをガ格として扱うか
         extract_nes (bool): 固有表現をコーパスから抽出するかどうか
         use_pas_tag (bool): <rel>タグからではなく、<述語項構造:>タグから PAS を読むかどうか
@@ -131,8 +131,8 @@ class Document:
     Attributes:
         knp_string (str): 文書ファイルの内容(knp形式)
         doc_id (str): 文書ID(ファイル名から拡張子を除いたもの)
-        target_cases (list): 抽出の対象とする格
-        target_corefs (list): 抽出の対象とする共参照関係(=など)
+        cases (List[str]): 抽出の対象とする格
+        corefs (List[str]): 抽出の対象とする共参照関係(=など)
         extract_nes (bool): 固有表現をコーパスから抽出するかどうか
         sid2sentence (dict): 文IDと文を紐付ける辞書
         bnst2dbid (dict): 文節IDと文書レベルの文節IDを紐付ける辞書
@@ -145,16 +145,16 @@ class Document:
     def __init__(self,
                  knp_string: str,
                  doc_id: str,
-                 target_cases: List[str],
-                 target_corefs: List[str],
+                 cases: List[str],
+                 corefs: List[str],
                  relax_cases: bool,
                  extract_nes: bool,
                  use_pas_tag: bool,
                  ) -> None:
         self.knp_string: str = knp_string
         self.doc_id: str = doc_id
-        self.target_cases: List[str] = target_cases
-        self.target_corefs: List[str] = target_corefs
+        self.cases: List[str] = cases
+        self.corefs: List[str] = corefs
         self.relax_cases: bool = relax_cases
         self.extract_nes: bool = extract_nes
         self.use_pas_tag: bool = use_pas_tag
@@ -240,7 +240,7 @@ class Document:
                     logger.warning(f'{tag2sid[tag]:24}sentence: {rel.sid} not found in {self.doc_id}')
                     valid = False
                 if rel.atype in (ALL_CASES + ALL_COREFS):
-                    if rel.atype not in (self.target_cases + self.target_corefs):
+                    if rel.atype not in (self.cases + self.corefs):
                         logger.info(f'{tag2sid[tag]:24}relation type: {rel.atype} is ignored')
                         valid = False
                 else:
@@ -251,7 +251,7 @@ class Document:
             # extract PAS
             pas = Pas(src_bp)
             for rel in rels:
-                if rel.atype in self.target_cases:
+                if rel.atype in self.cases:
                     if rel.sid is not None:
                         assert rel.tid is not None
                         arg_bp = self._get_bp(rel.sid, rel.tid)
@@ -275,7 +275,7 @@ class Document:
 
             # extract coreference
             for rel in rels:
-                if rel.atype in self.target_corefs:
+                if rel.atype in self.corefs:
                     if rel.mode in ('', 'AND'):  # ignore "OR" and "?"
                         self._add_corefs(src_bp, rel)
 
@@ -565,7 +565,7 @@ class Document:
         pas = copy.copy(self._pas[predicate.dtid])
         pas.arguments = cPickle.loads(cPickle.dumps(pas.arguments, -1))
         if include_optional is False:
-            for case in self.target_cases:
+            for case in self.cases:
                 pas.arguments[case] = list(filter(lambda a: a.optional is False, pas.arguments[case]))
 
         if relax is True:
@@ -603,7 +603,7 @@ class Document:
                   ) -> None:
         """sid で指定された文の述語項構造・共参照関係をツリー形式で fh に書き出す
 
-       Args:
+        Args:
            sid (str): 出力対象の文ID
            coreference (bool): 共参照関係も出力するかどうか
            fh (Optional[TextIO]): 出力ストリーム
@@ -613,23 +613,30 @@ class Document:
             sentence.draw_tag_tree(fh=string)
             tree_strings = string.getvalue().rstrip('\n').split('\n')
         assert len(tree_strings) == len(sentence.tag_list())
+        all_midasis = [m.midasi for m in self.mentions.values()]
         for predicate in filter(lambda p: p.sid == sid, self.get_predicates()):
             idx = predicate.tid
             tree_strings[idx] += '  '
             arguments = self.get_arguments(predicate)
-            for case in self.target_cases:
-                argument = arguments[case]
-                arg = argument[0].midasi if argument else 'NULL'
-                tree_strings[idx] += f'{arg}:{case} '
-
+            for case in self.cases:
+                args = arguments[case]
+                targets = set()
+                for arg in args:
+                    target = arg.midasi
+                    if all_midasis.count(arg.midasi) > 1 and isinstance(arg, Argument):
+                        target += str(arg.dtid)
+                    targets.add(target)
+                tree_strings[idx] += f'{",".join(targets)}:{case} '
         if coreference:
             for src_mention in filter(lambda m: m.sid == sid, self.mentions.values()):
                 tgt_mentions = [tgt for tgt in self.get_siblings(src_mention) if tgt.dtid < src_mention.dtid]
                 targets = set()
                 for tgt_mention in tgt_mentions:
-                    target = ''.join(mrph.midasi for mrph in tgt_mention.tag.mrph_list() if '<内容語>' in mrph.fstring)
+                    target = ''.join(mrph.midasi for mrph in tgt_mention.tag.mrph_list() if '<助詞>' not in mrph.fstring)
                     if not target:
                         target = tgt_mention.midasi
+                    if all_midasis.count(tgt_mention.midasi) > 1:
+                        target += str(tgt_mention.dtid)
                     targets.add(target + str(tgt_mention.dtid))
                 for eid in src_mention.eids:
                     entity = self.entities[eid]
@@ -639,7 +646,7 @@ class Document:
                     continue
                 idx = src_mention.tid
                 tree_strings[idx] += '  ＝:'
-                tree_strings[idx] += ' '.join(targets)
+                tree_strings[idx] += ','.join(targets)
 
         print('\n'.join(tree_strings), file=fh)
 
