@@ -9,7 +9,7 @@
 # 晩 ばん 晩 名詞 6 時相名詞 10 * 0 * 0 "漢字読み:音 代表表記:晩/ばん"
 
 # usage:
-# python add-imis.py --dic-dir /somewhere/juman/dic -i /somewhere/without/imis.knp -o /somewhere/with/imis.knp2
+# python add-sems.py --dic-dir /somewhere/juman/dic -i /somewhere/without/sems.knp -o /somewhere/with/sems.knp2
 # -i (--input-file) や -o (--output-file) を指定しなかれば std{in/out} が使用される
 
 # 注意
@@ -29,12 +29,12 @@
 # --yomi オプションを用いるとさらに読みも照合する(soft match)
 
 
+import re
 import sys
 import argparse
 from pathlib import Path
 from typing import List, Union
 from collections import defaultdict
-import re
 
 from pyknp import Juman, JUMAN_FORMAT
 
@@ -103,89 +103,87 @@ def main():
                     feature['読み'] = ['　']
                 features.append(feature)
 
-    rep2imis = defaultdict(list)
+    sems_dic = defaultdict(list)
     for feature in features:
-        hinsi: str = feature['品詞']
-        hinsi_bunrui: str = feature.get('品詞細分類', '')
+        pos: str = feature['品詞']
+        pos2: str = feature.get('品詞細分類', '')
         midasis: List[Union[str, list]] = feature['見出し語']
         yomi: str = feature['読み'][0]
-        imi: str = feature['意味情報'][0].strip('"')
-        if not imi:
+        sem: str = feature['意味情報'][0].strip('"')
+        if not sem:
             continue
 
         for midasi in midasis:
             if isinstance(midasi, list):
                 assert len(midasi) == 2
                 midasi = midasi[0]
-            rep = (midasi, hinsi)
-            if args.pos is False and hinsi_bunrui:
-                rep += (hinsi_bunrui,)
-            rep2imis[rep].append(imi)
+            key = (midasi, pos)
+            if args.pos is False and pos2:
+                key += (pos2,)
+            sems_dic[key].append(sem)
             if args.yomi:
-                rep += (yomi,)
-                rep2imis[rep].append(imi)
+                key += (yomi,)
+                sems_dic[key].append(sem)
 
     with open(args.input_file, mode='rt') if args.input_file else sys.stdin as fin:
         with open(args.output_file, mode='wt') if args.output_file else sys.stdout as fout:
             for line in fin:
-                fout.write(add_imis(line, rep2imis, args))
+                fout.write(add_sems(line, sems_dic, args))
 
 
-def add_imis(input_line: str, rep2imis, args):
+def add_sems(input_line: str, sems_dic, args):
     if input_line[0] in ('#', '*', '+') or input_line.strip() == 'EOS':
         return input_line
 
-    _, yomi, genkei, hinsi, _, hinsi_bunrui, _, _, _, _, _, *imis = input_line.strip().split()
-    if imis:
-        org_imi: str = imis[0].strip('"')
+    _, yomi, genkei, pos, _, pos2, _, _, _, _, _, *sems = input_line.strip().split()
+    if sems:
+        org_sem: str = sems[0].strip('"')
     else:
-        org_imi: str = ''
-    rep = (genkei, hinsi)
-    if args.pos is False and hinsi_bunrui != '*':
-        rep += (hinsi_bunrui,)
-    rep_yomi = rep + (yomi,)
+        org_sem: str = ''
+    key = (genkei, pos)
+    if args.pos is False and pos2 != '*':
+        key += (pos2,)
+    key_yomi = key + (yomi,)
 
     # 意味情報の手前まで
     newline: str = ' '.join(input_line.split()[:11])
     output_line = newline
 
-    if args.yomi and rep_yomi in rep2imis:
-        key = rep_yomi
-    else:
-        key = rep
+    if args.yomi and key_yomi in sems_dic:
+        key = key_yomi
 
-    if key in rep2imis:
-        first_imi: str = rep2imis[key][0]  # 該当する形態素のうち JumanDIC で最初にヒットしたものの意味情報を採用
+    if key in sems_dic:
+        first_sem: str = sems_dic[key][0]  # 該当する形態素のうち JumanDIC で最初にヒットしたものの意味情報を採用
         # jumanpp を使って代表表記を得る
-        if args.use_jumanpp and '代表表記' not in first_imi:
-            repname = get_repname_using_jumanpp(genkei, hinsi)
-            first_imi = f'代表表記:{repname} ' + first_imi
+        if args.use_jumanpp and '代表表記' not in first_sem:
+            repname = get_repname_using_jumanpp(genkei, pos)
+            first_sem = f'代表表記:{repname} ' + first_sem
 
-        output_line += f' "{first_imi}'
+        output_line += f' "{first_sem}'
 
-        match = re.match(r'(NE:\S+?)[ "]', org_imi)
+        match = re.match(r'(NE:\S+?)[ "]', org_sem)
         if match:
             output_line += ' ' + match.group(1)
         output_line += '"\n'
 
         # 1つ目以外の形態素候補を@行として表示する場合
         if args.remainder:
-            for imi in rep2imis[key][1:]:
-                output_line += f'@ {newline} "{imi}"\n'
+            for sem in sems_dic[key][1:]:
+                output_line += f'@ {newline} "{sem}"\n'
     else:
         # jumanpp を使って代表表記を得る
-        if args.use_jumanpp and '代表表記' not in org_imi:
-            repname = get_repname_using_jumanpp(genkei, hinsi)
-            imi = f'代表表記:{repname}' + (f' {org_imi}' if org_imi else '')
-            output_line += f' "{imi}"\n'
+        if args.use_jumanpp and '代表表記' not in org_sem:
+            repname = get_repname_using_jumanpp(genkei, pos)
+            sem = f'代表表記:{repname}' + (f' {org_sem}' if org_sem else '')
+            output_line += f' "{sem}"\n'
         else:
-            output_line += f' "{org_imi}"\n' if org_imi else '\n'
+            output_line += f' "{org_sem}"\n' if org_sem else '\n'
 
     return output_line
 
 
-def get_repname_using_jumanpp(genkei: str, hinsi: str) -> str:
-    if hinsi == '助詞':
+def get_repname_using_jumanpp(genkei: str, pos: str) -> str:
+    if pos == '助詞':
         return f'{genkei}/{genkei}'
 
     juman = Juman(option='-s 1')
