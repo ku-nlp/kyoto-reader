@@ -4,7 +4,7 @@
 import re
 
 re_word = re.compile(r'^("(?:[^"\\]+|\\.)*")')
-re_symbol = re.compile(r'^([^\s"()]+)')
+re_symbol = re.compile(r'^(([^\s"()\\]|\\")+)')
 
 
 def parse(input_text):
@@ -90,7 +90,8 @@ def parse(input_text):
         elif re_symbol.search(string):
             match = re_symbol.search(string)
             offsets[0] -= 1
-            stack.append(match.group(1))
+            unescaped = re.sub(r'\\(.)', r'\1', match.group(1))
+            stack.append(unescaped)
             string = string[len(match.group(1)):]
         elif string.startswith(")"):
             string = string[1:]
