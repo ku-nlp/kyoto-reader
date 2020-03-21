@@ -1,7 +1,6 @@
 # Jumanの意味情報がついていない昔のコーパスに意味情報を付加するプログラム
 
-# by harashima (06/08/22)
-# modified by shibata (06/09/06)
+# https://bitbucket.org/ku_nlp/anaphora-test/src/master/scripts/add-imis.perl の Python 実装
 
 # 晩 ばん 晩 名詞 6 時相名詞 10 * 0 * 0
 #
@@ -10,11 +9,8 @@
 # 晩 ばん 晩 名詞 6 時相名詞 10 * 0 * 0 "漢字読み:音 代表表記:晩/ばん"
 
 # usage:
-# perl add-imis.pl --dir /some/where/juman/dic 2002_10_17.in
-# (一括処理の場合) perl add-imis.pl --dir /some/where/juman/dic -inext knp2 -outext knp
-
-# --dirでContentW.dicの場所を指定
-# JumanLib.pmが必要
+# python add-imis.py --dic-dir /somewhere/juman/dic -i /somewhere/without/imis.knp -o /somewhere/with/imis.knp2
+# -i (--input-file) や -o (--output-file) を指定しなかれば std{in/out} が使用される
 
 # 注意
 
@@ -25,12 +21,12 @@
 # 使って つかって 使う 動詞 2 * 0 子音動詞ワ行 12 タ系連用テ形 12 "代表表記:使う/つかう"
 
 # 入力の原形がひらがなの場合は入力の読みに一致する単語の中でJUMAN辞書で一番上にある単語の意味情報が付加される
-# 例：入力が「あいしょう」のときは「愛唱」の意味情報が付加される (--pos オプションが付いている場合。そうでなければ細分類も見るので)
-# --remainderオプションを用いると、一番上以外の形態素を@行として出力する
+# 例：入力が「あいしょう」のときは「愛唱」の意味情報が付加される (--pos オプションが付いている場合のみ。そうでなければ入力の細分類による)
+# --remainder オプションを用いると、一番上以外の形態素を@行として出力する
 
-# デフォルトでは、表記、品詞、品詞細分類を用いてマッチングを行う
-# --posオプションを用いると表記と品詞のみで照合する
-# --yomiオプションを用いるとさらに読みも照合する(soft match)
+# デフォルトでは、原形、品詞、品詞細分類を用いてマッチングを行う
+# --pos オプションを用いると原形と品詞のみで照合する
+# --yomi オプションを用いるとさらに読みも照合する(soft match)
 
 
 import sys
@@ -47,9 +43,9 @@ from kyoto_reader.scripts.sexp import parse
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input-file', default=None, type=str,
+    parser.add_argument('--input-file', '-i', default=None, type=str,
                         help='path to input knp file')
-    parser.add_argument('--output-file', default=None, type=str,
+    parser.add_argument('--output-file', '-o', default=None, type=str,
                         help='path to output knp file')
     parser.add_argument('--dic-dir', default=None, type=str,
                         help='path to directory where JumanDIC files exist')
