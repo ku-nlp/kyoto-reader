@@ -33,23 +33,24 @@
 # --yomiオプションを用いるとさらに読みも照合する(soft match)
 
 
+import sys
 import argparse
 from pathlib import Path
 from typing import List, Union
 from collections import defaultdict
 import re
 
-from pyknp import Juman
+from pyknp import Juman, JUMAN_FORMAT
 
 from kyoto_reader.scripts.sexp import parse
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input-dir', default='.', type=str,
-                        help='path to directory where input files exist')
-    parser.add_argument('--output-dir', default='.', type=str,
-                        help='path to directory where output files are exported')
+    parser.add_argument('--input-file', default=None, type=str,
+                        help='path to input knp file')
+    parser.add_argument('--output-file', default=None, type=str,
+                        help='path to output knp file')
     parser.add_argument('--dic-dir', default=None, type=str,
                         help='path to directory where JumanDIC files exist')
     parser.add_argument('--dic-file', default=None, type=str,
@@ -60,8 +61,8 @@ def main():
                         help='use dictionary obtained automatically from Wikipedia')
     parser.add_argument('--use-jumanpp', action='store_true', default=False,
                         help='add 代表表記 to all morpheme even if it does not exist in jumandic')
-    parser.add_argument('--remainder', default=None, type=str,
-                        help='')
+    parser.add_argument('--remainder', action='store_true', default=False,
+                        help='output 意味情報 of other morphemes as well')
     parser.add_argument('--pos', action='store_true', default=False,
                         help='use only midasi and pos')
     parser.add_argument('--yomi', action='store_true', default=False,
@@ -92,6 +93,8 @@ def main():
                 if not obj:
                     continue
                 pos, obj2 = obj[0]
+                if pos == '連語':
+                    continue
                 feature['品詞'] = pos
                 if isinstance(obj2[0], str):
                     pos2, feats = obj2
@@ -99,14 +102,17 @@ def main():
                 else:
                     feats = obj2
                 feature.update({k: v for k, *v in feats})
+                if pos == '特殊' and pos2 == '空白':
+                    feature['見出し語'] = ['　']
+                    feature['読み'] = ['　']
                 features.append(feature)
 
     rep2imis = defaultdict(list)
     for feature in features:
-        midasis: List[Union[str, list]] = feature['見出し語']
-        yomi: str = feature['読み'][0]
         hinsi: str = feature['品詞']
         hinsi_bunrui: str = feature.get('品詞細分類', '')
+        midasis: List[Union[str, list]] = feature['見出し語']
+        yomi: str = feature['読み'][0]
         imi: str = feature['意味情報'][0].strip('"')
         if not imi:
             continue
@@ -122,25 +128,24 @@ def main():
             if args.yomi:
                 rep += (yomi,)
                 rep2imis[rep].append(imi)
-            # print(rep)
 
-    for input_file in Path(args.input_dir).glob('*.knp'):
-        with input_file.open() as f:
-            for line in f:
-                print(add_imis(line, rep2imis, args), end='')
+    with open(args.input_file, mode='rt') if args.input_file else sys.stdin as fin:
+        with open(args.output_file, mode='wt') if args.output_file else sys.stdout as fout:
+            for line in fin:
+                fout.write(add_imis(line, rep2imis, args))
 
 
 def add_imis(input_line: str, rep2imis, args):
     if input_line[0] in ('#', '*', '+') or input_line.strip() == 'EOS':
         return input_line
 
-    midasi, yomi, genkei, hinsi, _, hinsi_bunrui, _, _, _, _, _, *imis = input_line.strip().split()
+    _, yomi, genkei, hinsi, _, hinsi_bunrui, _, _, _, _, _, *imis = input_line.strip().split()
     if imis:
         org_imi: str = imis[0].strip('"')
     else:
         org_imi: str = ''
-    rep = (midasi, hinsi)
-    if args.pos is False and hinsi_bunrui:
+    rep = (genkei, hinsi)
+    if args.pos is False and hinsi_bunrui != '*':
         rep += (hinsi_bunrui,)
     rep_yomi = rep + (yomi,)
 
@@ -188,7 +193,7 @@ def get_repname_using_jumanpp(genkei: str, hinsi: str) -> str:
         return f'{genkei}/{genkei}'
 
     juman = Juman(option='-s 1')
-    mrphs = juman.analysis(genkei)
+    mrphs = juman.analysis(genkei, juman_format=JUMAN_FORMAT.LATTICE_TOP_ONE)
     # 形態素解析が誤っていないか(=1形態素になっているか)をチェック
     if len(mrphs) == 1:
         return mrphs[0].repname
