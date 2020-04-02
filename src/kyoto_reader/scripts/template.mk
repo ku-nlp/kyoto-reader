@@ -1,5 +1,5 @@
-IN_DIR := {out_dir}
-OUT_DIR := {in_dir}
+IN_DIR := {in_dir}
+OUT_DIR := {out_dir}
 JUMAN_DIC_DIR := {juman_dic_dir}
 SCRIPTS_BASE_DIR := {scripts_base_dir}
 
