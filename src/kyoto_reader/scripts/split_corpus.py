@@ -8,7 +8,7 @@ from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input-dir', '-o', default=None, type=str,
+    parser.add_argument('--input-dir', '-i', default=None, type=str,
                         help='path to input knp directory')
     parser.add_argument('--output-dir', '-o', default=None, type=str,
                         help='path to output knp directory')
