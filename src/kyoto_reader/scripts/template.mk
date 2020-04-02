@@ -9,7 +9,7 @@ ADD_SEMS_KNP_DIR := $(OUT_DIR)/sems
 OUT_KNP_DIR := $(OUT_DIR)/knp
 
 CORPUS_KNPS := $(shell find $(IN_DIR) -type f -name "*.knp")
-ORIG_KNPS := $(shell ls $(ORIG_KNP_DIR)/*.knp)
+ORIG_KNPS := $(shell find $(ORIG_KNP_DIR) -type f -name "*.knp")
 ADD_SEMS_KNPS := $(patsubst $(ORIG_KNP_DIR)/%.knp,$(ADD_SEMS_KNP_DIR)/%.knp,$(ORIG_KNPS))
 OUT_KNPS := $(patsubst $(ADD_SEMS_KNP_DIR)/%.knp,$(OUT_KNP_DIR)/%.knp,$(ADD_SEMS_KNPS))
 
