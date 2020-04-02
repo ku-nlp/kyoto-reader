@@ -16,15 +16,15 @@ OUT_KNPS := $(patsubst $(ADD_SEMS_KNP_DIR)/%.knp,$(OUT_KNP_DIR)/%.knp,$(ADD_SEMS
 ADD_SEMS_ARGS := --use-wikipediadic --dic-dir $(JUMAN_DIC_DIR)
 LAST_MAKEFILE := $(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
 NICE_VALUE := 19
-KNP := nice -n $(NICE_VALUE) knp
-PYTHON := nice -n $(NICE_VALUE) python3
+KNP := nice -n $(NICE_VALUE) {knp}
+PYTHON := nice -n $(NICE_VALUE) {python}
 
 all:
 	$(MAKE) -f $(LAST_MAKEFILE) $(ORIG_KNP_DONE)
 	$(MAKE) -f $(LAST_MAKEFILE) add-feats
 
 # split files into documents
-$(ORIG_KNP_DONE): $(CORPUS_KNPS)  # FIXME: multipleと解釈されない
+$(ORIG_KNP_DONE): $(CORPUS_KNPS)
 	mkdir -p $(ORIG_KNP_DIR)
 	$(PYTHON) $(SCRIPTS_BASE_DIR)/split_corpus.py --input-dir $(IN_DIR) --output-dir $(ORIG_KNP_DIR) && touch $@
 

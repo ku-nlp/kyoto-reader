@@ -1,3 +1,5 @@
+import sys
+import shutil
 import argparse
 from pathlib import Path
 
@@ -12,6 +14,8 @@ def main():
                         help='path to directory where JumanDIC files exist')
     parser.add_argument('--makefile-name', default='corpus.mk', type=str,
                         help='name of makefile to be created')
+    parser.add_argument('--knp', default=shutil.which('knp'), type=str,
+                        help='path to knp')
     args = parser.parse_args()
 
     here = Path(__file__).parent
@@ -21,7 +25,10 @@ def main():
         f.write(string.format(in_dir=args.corpus_dir,
                               out_dir=args.data_dir,
                               juman_dic_dir=args.juman_dic_dir,
-                              scripts_base_dir=here))
+                              scripts_base_dir=here,
+                              knp=args.knp,
+                              python=sys.executable))
+    print(f'created: {args.makefile_name}')
 
 
 if __name__ == '__main__':
