@@ -33,11 +33,8 @@ add-feats: $(OUT_KNPS)
 
 # knp -read-feature
 $(OUT_KNPS): $(OUT_KNP_DIR)/%.knp: $(ADD_SEMS_KNP_DIR)/%.knp
-	@echo $<
-	mkdir -p $(dir $@)
-	cat $< | $(KNP) -tab -read-feature > $@ || rm -f $@
+	mkdir -p $(dir $@) && cat $< | $(KNP) -tab -read-feature > $@ || rm -f $@
 
 # add_sems.py
 $(ADD_SEMS_KNPS): $(ADD_SEMS_KNP_DIR)/%.knp: $(ORIG_KNP_DIR)/%.knp
-	mkdir -p $(dir $@)
-	cat $< | $(PYTHON) $(SCRIPTS_BASE_DIR)/add_sems.py $(ADD_SEMS_ARGS) > $@ || rm -f $@
+	mkdir -p $(dir $@) && cat $< | $(PYTHON) $(SCRIPTS_BASE_DIR)/add_sems.py $(ADD_SEMS_ARGS) > $@ || rm -f $@
