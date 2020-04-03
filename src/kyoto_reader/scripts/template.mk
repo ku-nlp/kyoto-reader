@@ -26,7 +26,7 @@ all:
 # split files into documents
 $(ORIG_KNP_DONE): $(CORPUS_KNPS)
 	mkdir -p $(ORIG_KNP_DIR)
-	$(PYTHON) $(SCRIPTS_BASE_DIR)/split_corpus.py --input-dir $(IN_DIR) --output-dir $(ORIG_KNP_DIR) && touch $@
+	$(PYTHON) $(SCRIPTS_BASE_DIR)/docsplit.py --input-dir $(IN_DIR) --output-dir $(ORIG_KNP_DIR) && touch $@
 
 .PHONY: add-feats
 add-feats: $(OUT_KNPS)
