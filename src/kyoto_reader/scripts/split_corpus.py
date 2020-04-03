@@ -14,7 +14,7 @@ def main():
                         help='path to output knp directory')
     args = parser.parse_args()
 
-    sid_pat = re.compile(r'^# S-ID:(\d{9})-(\d{3}) .*$')
+    sid_pat = re.compile(r'^# S-ID:((\d{9})|(w\d{6}-\d{10}))-([0-9-]+) .*$')
 
     docs: Dict[str, str] = {}
     did = None
@@ -24,7 +24,7 @@ def main():
             for line in f:
                 if line.startswith('# S-ID'):
                     match = sid_pat.match(line.strip())
-                    # sid = match.group(1) + '-' + match.group(2)
+                    # sid = match.group(1) + '-' + match.group(4)
                     if did != match.group(1):
                         if did is not None:
                             docs[did] = buff
