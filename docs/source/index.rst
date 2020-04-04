@@ -23,9 +23,10 @@ Requirements
 ========================
 
 - Python
-    -  Verified Versions: 3.6, 3.7
+    -  Verified Versions: 3.6, 3.7, 3.8
 - `pyknp 0.4.1`_
-.. - JumanDIC_ (optional)
+- KNP (optional)
+- JumanDIC_ (optional)
 
 .. _`pyknp 0.4.1`: https://github.com/ku-nlp/pyknp
 .. _JumanDIC: https://github.com/ku-nlp/JumanDIC
@@ -132,6 +133,30 @@ Usage
         ３n回s┤
         行うv。*  不特定:人,著者,読者:ガ トス:ヲ :ニ
 
+
+Corpus Preprocessor
+========================
+
+- Makefile を使用してコーパスに追加の素性を付与することができる (KNP と JumanDIC が必要)。
+
+  以下のコマンドを実行することでコーパスのディレクトリに Makefile が生成される。
+
+.. code-block:: bash
+
+   $ configure --corpus-dir </path/to/downloaded/knp/directory> --data-dir </path/to/output/directory> --juman-dic-dir </path/to/JumanDIC/directory>
+   created Makefile at /path/to/output/directory
+
+この Makefile を実行することで knp/ ディレクトリに素性の付与されたファイルが出力される
+
+.. code-block:: bash
+
+   $ make -i
+
+- idsplit コマンドを使用してコーパスを train/dev/test ファイルに分割することができる．
+
+.. code-block:: bash
+
+   $ idsplit --corpus-dir </path/to/knp/dir> --output-dir </path/to/output/dir> --train </path/to/train/id/file> --dev </path/to/dev/id/file> --test </path/to/test/id/file>
 
 Documents
 ============
