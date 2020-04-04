@@ -150,6 +150,7 @@ Corpus Preprocessor
 
 .. code-block:: bash
 
+   $ cd /path/to/output/directory
    $ make -i
 
 - idsplit コマンドを使用してコーパスを train/dev/test ファイルに分割することができる．
