@@ -6,12 +6,10 @@
 
 ## Requirements
 
-- Python
-  - Verified Versions: 3.6, 3.7
-- pyknp 0.4.1
-  - [pyknp (GitHub)](https://github.com/ku-nlp/pyknp)
-- JumanDIC (optional)
-  - [JumanDIC (GitHub)](https://github.com/ku-nlp/JumanDIC)
+- Python 3.6, 3.7, 3.8
+- [pyknp](https://github.com/ku-nlp/pyknp) 0.4.1
+- KNP 4.2 (optinal)
+- [JumanDIC](https://github.com/ku-nlp/JumanDIC) (optional)
 
 ## Installation
 
