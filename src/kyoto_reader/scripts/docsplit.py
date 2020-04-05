@@ -4,8 +4,6 @@ from typing import Dict
 from pathlib import Path
 
 
-# python split_corpus.py --input-dir /somewhere/kc/input --output-dir /somewhere/kc/output
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input-dir', '-i', default=None, type=str,
