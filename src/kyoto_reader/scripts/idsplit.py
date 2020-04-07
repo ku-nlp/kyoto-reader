@@ -46,6 +46,10 @@ def write(id_file: Path, output_dir: Path, input_dir: Path):
             files = list(input_dir.glob(f'**/{doc_id}.knp'))
             if not files:
                 raise FileNotFoundError(f'There is no file that matches ID: {doc_id}')
+            file = files[0]
+            if not file.exists():
+                print(f'{file} does not exist. skip.', file=sys.stderr)
+                continue
             shutil.copy(str(files[0]), str(output_dir))
             print(f'copy {files[0]} to {output_dir}')
 
