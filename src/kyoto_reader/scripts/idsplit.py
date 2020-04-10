@@ -39,13 +39,13 @@ def main():
 
 
 def write(id_file: Path, output_dir: Path, input_dir: Path):
-    output_dir.mkdir(exist_ok=False)
+    output_dir.mkdir(exist_ok=True)
     with id_file.open() as f:
         for line in f:
             doc_id = line.strip()
             files = list(input_dir.glob(f'**/{doc_id}.knp'))
             if not files:
-                print(f'There is no file that matches ID: {doc_id}. Skip', file=sys.stderr)
+                print(f'Cannot copy \'{doc_id}.knp\': No such file in {input_dir}', file=sys.stderr)
                 continue
             file = files[0]
             shutil.copy(str(file), str(output_dir))
