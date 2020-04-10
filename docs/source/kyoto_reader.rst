@@ -5,6 +5,7 @@ Submodules
 ----------
 
 .. toctree::
+   :maxdepth: 4
 
    kyoto_reader.base_phrase
    kyoto_reader.constants
