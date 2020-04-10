@@ -7,7 +7,7 @@ from typing import List, Dict, Set, Optional, Iterator, Union, TextIO
 from collections import OrderedDict
 
 from pyknp import BList, Bunsetsu, Tag, Morpheme, Rel
-import mojimoji
+import jaconv
 
 from kyoto_reader.pas import Pas, Predicate, BaseArgument, Argument, SpecialArgument
 from kyoto_reader.coreference import Mention, Entity
@@ -213,7 +213,7 @@ class Document:
                     if case in ALL_CASES and case.endswith('≒'):
                         case = case.rstrip('≒')  # ガ≒ -> ガ
                 for arg in arguments:
-                    arg.midasi = mojimoji.han_to_zen(arg.midasi, ascii=False)  # 不特定:人1 -> 不特定:人１
+                    arg.midasi = jaconv.h2z(arg.midasi, digit=True)  # 不特定:人1 -> 不特定:人１
                     # exophor
                     if arg.flag == 'E':
                         entity = self._create_entity(exophor=arg.midasi, eid=arg.eid)
@@ -294,7 +294,7 @@ class Document:
             if spec[tag_start:].startswith('rel '):
                 rel = Rel(spec[tag_start:tag_end])
                 if rel.target:
-                    rel.target = mojimoji.han_to_zen(rel.target, ascii=False)  # 不特定:人1 -> 不特定:人１
+                    rel.target = jaconv.h2z(rel.target, digit=True)  # 不特定:人1 -> 不特定:人１
                 if rel.atype is not None:
                     rels.append(rel)
 
