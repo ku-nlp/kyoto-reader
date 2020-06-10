@@ -154,11 +154,6 @@ class SpecialArgument(BaseArgument):
         return isinstance(other, SpecialArgument) and self.exophor == other.exophor
 
 
-# class Predicate(BasePhrase):
-#     def __init__(self, tag, dtid, sid, mrph2dmid):
-#         super().__init__(tag, dtid, sid, mrph2dmid)
-
-
 class Pas:
     """ 述語項構造を保持するオブジェクト
 
