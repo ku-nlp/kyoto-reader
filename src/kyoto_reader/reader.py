@@ -47,7 +47,8 @@ class KyotoReader:
         if isinstance(source, Path):
             if source.is_dir():
                 logger.info(f'got directory path, files in the directory is treated as source files')
-                file_paths: List[Path] = sorted(source.glob(f'*{knp_ext}')) + sorted(source.glob(f'*{pickle_ext}'))
+                file_paths: List[Path] = \
+                    sorted(source.glob(f'**/*{knp_ext}')) + sorted(source.glob(f'**/*{pickle_ext}'))
                 self.did2source: Dict[str, Union[Path, str]] = OrderedDict((path.stem, path) for path in file_paths)
             else:
                 logger.info(f'got file path, this file is treated as a source knp file')
