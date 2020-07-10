@@ -31,6 +31,7 @@ class KyotoReader:
         knp_ext (str): KWDLC または KC ファイルの拡張子
         pickle_ext (str): Document を pickle 形式で読む場合の拡張子
         use_pas_tag (bool): <rel>タグからではなく、<述語項構造:>タグから PAS を読むかどうか
+        recursive (bool): source がディレクトリのときファイルを再帰的に探索するかどうか
     """
     def __init__(self,
                  source: Union[Path, str],
@@ -41,14 +42,16 @@ class KyotoReader:
                  use_pas_tag: bool = False,
                  knp_ext: str = '.knp',
                  pickle_ext: str = '.pkl',
+                 recursive: bool = False,
                  ) -> None:
         if not (isinstance(source, Path) or isinstance(source, str)):
             raise TypeError(f'source must be Path or str type, but got {type(source)}')
         if isinstance(source, Path):
             if source.is_dir():
                 logger.info(f'got directory path, files in the directory is treated as source files')
-                file_paths: List[Path] = \
-                    sorted(source.glob(f'**/*{knp_ext}')) + sorted(source.glob(f'**/*{pickle_ext}'))
+                file_paths: List[Path] = []
+                for ext in (knp_ext, pickle_ext):
+                    file_paths += sorted(source.glob(f'**/*{ext}' if recursive else f'*{ext}'))
                 self.did2source: Dict[str, Union[Path, str]] = OrderedDict((path.stem, path) for path in file_paths)
             else:
                 logger.info(f'got file path, this file is treated as a source knp file')
