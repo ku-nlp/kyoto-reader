@@ -5,8 +5,8 @@ from abc import abstractmethod
 
 from pyknp import Tag, Morpheme
 
-from kyoto_reader.base_phrase import BasePhrase
-from kyoto_reader.coreference import Mention
+from .base_phrase import BasePhrase
+from .coreference import Mention
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

@@ -9,11 +9,12 @@ from collections import OrderedDict
 from pyknp import BList, Bunsetsu, Tag, Morpheme, Rel
 import jaconv
 
-from kyoto_reader.pas import Pas, Predicate, BaseArgument, Argument, SpecialArgument
-from kyoto_reader.coreference import Mention, Entity
-from kyoto_reader.ne import NamedEntity
-from kyoto_reader.constants import ALL_CASES, CORE_CASES, ALL_EXOPHORS, ALL_COREFS, CORE_COREFS, NE_CATEGORIES
-from kyoto_reader.base_phrase import BasePhrase
+from .sentence import Sentence
+from .pas import Pas, Predicate, BaseArgument, Argument, SpecialArgument
+from .coreference import Mention, Entity
+from .ne import NamedEntity
+from .constants import ALL_CASES, CORE_CASES, ALL_EXOPHORS, ALL_COREFS, CORE_COREFS, NE_CATEGORIES
+from .base_phrase import BasePhrase
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -139,8 +140,6 @@ class Document:
         corefs (List[str]): 抽出の対象とする共参照関係(=など)
         extract_nes (bool): 固有表現をコーパスから抽出するかどうか
         sid2sentence (dict): 文IDと文を紐付ける辞書
-        bnst2dbid (dict): 文節IDと文書レベルの文節IDを紐付ける辞書
-        tag2dtid (dict): 基本句IDと文書レベルの基本句IDを紐付ける辞書
         mrph2dmid (dict): 形態素IDと文書レベルの形態素IDを紐付ける辞書
         mentions (dict): dtid を key とする mention の辞書
         entities (dict): entity id を key として entity オブジェクトが格納されている
@@ -163,21 +162,21 @@ class Document:
         self.extract_nes: bool = extract_nes
         self.use_pas_tag: bool = use_pas_tag
 
-        self.sid2sentence: Dict[str, BList] = OrderedDict()
-        buff = []
+        self.sid2sentence: Dict[str, Sentence] = OrderedDict()
+        dtid = dmid = 0
+        buff = ''
         for line in knp_string.strip().split('\n'):
-            buff.append(line)
+            buff += line + '\n'
             if line.strip() == 'EOS':
-                sentence = BList('\n'.join(buff) + '\n')
+                sentence = Sentence(buff, dtid, dmid, doc_id)
                 if sentence.sid in self.sid2sentence:
                     logger.warning(f'{sentence.sid:24}duplicated sid found')
                 self.sid2sentence[sentence.sid] = sentence
-                buff = []
+                dtid += len(sentence.bps)
+                dmid += len(sentence.mrph_list())
+                buff = ''
 
-        self.bnst2dbid = {}
-        self.tag2dtid = {}
-        self.mrph2dmid = {}
-        self._assign_document_wide_id()
+        self.mrph2dmid = {mrph: dmid for sent in self.sentences for mrph, dmid in sent.mrph2dmid.items()}
 
         self._pas: Dict[int, Pas] = OrderedDict()
         self.mentions: Dict[int, Mention] = OrderedDict()
@@ -191,28 +190,14 @@ class Document:
             self.named_entities: List[NamedEntity] = []
             self._extract_nes()
 
-    def _assign_document_wide_id(self) -> None:
-        """文節・基本句・形態素に文書全体に渡る通し番号を振る"""
-        dbid, dtid, dmid = 0, 0, 0
-        for sentence in self.sentences:
-            for bnst in sentence.bnst_list():
-                for tag in bnst.tag_list():
-                    for mrph in tag.mrph_list():
-                        self.mrph2dmid[mrph] = dmid
-                        dmid += 1
-                    self.tag2dtid[tag] = dtid
-                    dtid += 1
-                self.bnst2dbid[bnst] = dbid
-                dbid += 1
-
     def _analyze_pas(self) -> None:
         """extract predicate argument structure from <述語項構造:> tag in knp string"""
         sid2idx = {sid: idx for idx, sid in enumerate(self.sid2sentence.keys())}
-        for tag in self.tag_list():
-            if tag.pas is None:
+        for bp in self.bp_list():
+            if bp.tag.pas is None:
                 continue
-            pas = Pas(BasePhrase(tag, self.tag2dtid[tag], tag.pas.sid, self.mrph2dmid), self.mrph2dmid)
-            for case, arguments in tag.pas.arguments.items():
+            pas = Pas(bp, self.mrph2dmid)
+            for case, arguments in bp.tag.pas.arguments.items():
                 if self.relax_cases:
                     if case in ALL_CASES and case.endswith('≒'):
                         case = case.rstrip('≒')  # ガ≒ -> ガ
@@ -232,28 +217,27 @@ class Document:
 
     def _analyze_rel(self) -> None:
         """extract predicate argument structure and coreference relation from <rel> tag in knp string"""
-        tag2sid = {tag: sentence.sid for sentence in self.sentences for tag in sentence.tag_list()}
-        for tag in self.tag_list():
+        for bp in self.bp_list():
             rels = []
-            for rel in self._extract_rel_tags(tag):
+            for rel in self._extract_rel_tags(bp.tag):
                 if self.relax_cases:
                     if rel.atype in ALL_CASES and rel.atype.endswith('≒'):
                         rel.atype = rel.atype.rstrip('≒')  # ガ≒ -> ガ
                 valid = True
                 if rel.sid is not None and rel.sid not in self.sid2sentence:
-                    logger.warning(f'{tag2sid[tag]:24}sentence: {rel.sid} not found in {self.doc_id}')
+                    logger.warning(f'{bp.sid:24}sentence: {rel.sid} not found in {self.doc_id}')
                     valid = False
                 if rel.atype in (ALL_CASES + ALL_COREFS):
                     if rel.atype not in (self.cases + self.corefs):
-                        logger.info(f'{tag2sid[tag]:24}relation type: {rel.atype} is ignored')
+                        logger.info(f'{bp.sid:24}relation type: {rel.atype} is ignored')
                         valid = False
                 else:
-                    logger.warning(f'{tag2sid[tag]:24}unknown relation: {rel.atype}')
+                    logger.warning(f'{bp.sid:24}unknown relation: {rel.atype}')
                 if valid:
                     rels.append(rel)
-            src_bp = BasePhrase(tag, self.tag2dtid[tag], tag2sid[tag], self.mrph2dmid)
+
             # extract PAS
-            pas = Pas(src_bp, self.mrph2dmid)
+            pas = Pas(bp, self.mrph2dmid)
             for rel in rels:
                 if rel.atype in self.cases:
                     if rel.sid is not None:
@@ -281,7 +265,7 @@ class Document:
             for rel in rels:
                 if rel.atype in self.corefs:
                     if rel.mode in ('', 'AND'):  # ignore "OR" and "?"
-                        self._add_corefs(src_bp, rel)
+                        self._add_corefs(bp, rel)
 
     # to extract rels with mode: '?', rewrite initializer of pyknp Futures class
     @staticmethod
@@ -480,12 +464,11 @@ class Document:
         Returns:
             Optional[BasePhrase]: 対応する基本句
         """
-        tag_list = self.sid2sentence[sid].tag_list()
-        if not (0 <= tid < len(tag_list)):
+        sentence = self[sid]
+        if not (0 <= tid < len(sentence.bps)):
             logger.warning(f'{sid:24}tag id: {tid} out of range')
             return None
-        tag = tag_list[tid]
-        return BasePhrase(tag, self.tag2dtid[tag], sid, self.mrph2dmid)
+        return sentence.bps[tid]
 
     def _extract_nes(self) -> None:
         """KNP の tag を参照して文書中から固有表現を抽出する"""
@@ -523,16 +506,19 @@ class Document:
         return None
 
     @property
-    def sentences(self) -> List[BList]:
+    def sentences(self) -> List['Sentence']:
         """文を構成する全文節列オブジェクト
 
         Returns:
-            List[BList]
+            List[Sentence]
         """
         return list(self.sid2sentence.values())
 
     def bnst_list(self) -> List[Bunsetsu]:
         return [bnst for sentence in self.sentences for bnst in sentence.bnst_list()]
+
+    def bp_list(self) -> List[BasePhrase]:
+        return [bp for sentence in self.sentences for bp in sentence.bps]
 
     def tag_list(self) -> List[Tag]:
         return [tag for sentence in self.sentences for tag in sentence.tag_list()]
@@ -540,8 +526,8 @@ class Document:
     def mrph_list(self) -> List[Morpheme]:
         return [mrph for sentence in self.sentences for mrph in sentence.mrph_list()]
 
-    def get_entities(self, tag: Tag) -> List[Entity]:
-        return [e for e in self.entities.values() if any(m.dtid == self.tag2dtid[tag] for m in e.mentions)]
+    def get_entities(self, bp: BasePhrase) -> List[Entity]:
+        return [e for e in self.entities.values() if any(m.dtid == bp.dtid for m in e.mentions)]
 
     def pas_list(self) -> List[Pas]:
         return list(self._pas.values())
@@ -612,11 +598,11 @@ class Document:
            coreference (bool): 共参照関係も出力するかどうか
            fh (Optional[TextIO]): 出力ストリーム
         """
-        sentence: BList = self[sid]
+        blist: BList = self[sid].blist
         with io.StringIO() as string:
-            sentence.draw_tag_tree(fh=string)
+            blist.draw_tag_tree(fh=string)
             tree_strings = string.getvalue().rstrip('\n').split('\n')
-        assert len(tree_strings) == len(sentence.tag_list())
+        assert len(tree_strings) == len(blist.tag_list())
         all_midasis = [m.midasi for m in self.mentions.values()]
         for predicate in filter(lambda p: p.sid == sid, self.get_predicates()):
             idx = predicate.tid
@@ -693,4 +679,4 @@ class Document:
         return iter(self.sid2sentence.values())
 
     def __str__(self):
-        return '\n'.join(''.join(tag.midasi for tag in sent.tag_list()) for sent in self)
+        return ''.join(sent.midasi for sent in self)

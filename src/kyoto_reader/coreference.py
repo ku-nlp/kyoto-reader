@@ -3,7 +3,7 @@ from typing import Dict, Optional, Set
 
 from pyknp import Morpheme
 
-from kyoto_reader.base_phrase import BasePhrase
+from .base_phrase import BasePhrase
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

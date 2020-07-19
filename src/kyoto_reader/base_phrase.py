@@ -1,5 +1,5 @@
 import logging
-from typing import Dict
+from typing import List, Dict
 
 from pyknp import Tag, Morpheme
 
@@ -48,3 +48,10 @@ class BasePhrase:
     def midasi(self) -> str:
         """表記"""
         return self.tag.midasi
+
+    def mrph_list(self) -> List[Morpheme]:
+        """形態素列"""
+        return self.tag.mrph_list()
+
+    def __str__(self) -> str:
+        return self.midasi

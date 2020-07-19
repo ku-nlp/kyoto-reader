@@ -1,6 +1,8 @@
 from typing import Dict
 
-from pyknp import BList, Morpheme
+from pyknp import Morpheme
+
+from .sentence import Sentence
 
 
 class NamedEntity:
@@ -9,7 +11,7 @@ class NamedEntity:
     Args:
         category (str): 固有表現の種類
         midasi (str): 固有表現の見出し
-        sentence (str): 固有表現を含む文
+        sentence (Sentence): 固有表現を含む文
         mid_range (range): 形態素レベルの固有表現のスパン
         mrph2dmid (dict): 形態素とその文書レベルIDを紐付ける辞書
 
@@ -24,7 +26,7 @@ class NamedEntity:
     def __init__(self,
                  category: str,
                  midasi: str,
-                 sentence: BList,
+                 sentence: Sentence,
                  mid_range: range,
                  mrph2dmid: Dict[Morpheme, int]):
         self.category: str = category
