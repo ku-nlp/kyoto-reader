@@ -34,7 +34,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.todo',
     'sphinx.ext.napoleon',  # Google スタイルの docstring を tst に変換する
-    'sphinx_autodoc_typehints',
     'recommonmark',
 ]
 

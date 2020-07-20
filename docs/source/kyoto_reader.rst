@@ -13,6 +13,7 @@ Submodules
    kyoto_reader.ne
    kyoto_reader.pas
    kyoto_reader.reader
+   kyoto_reader.sentence
 
 Module contents
 ---------------
