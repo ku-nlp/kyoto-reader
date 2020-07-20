@@ -533,6 +533,8 @@ class Document:
             bp (BasePhrase): 基本句
             include_uncertain (bool): 参照しているか不確かなエンティティも返すかどうか
         """
+        if bp.dtid not in self.mentions:
+            return []
         mention = self.mentions[bp.dtid]
         eids = mention.all_eids if include_uncertain else mention.eids
         return [self.entities[eid] for eid in eids]
@@ -680,14 +682,14 @@ class Document:
     def __len__(self):
         return len(self.sid2sentence)
 
-    def __getitem__(self, sid: str):
+    def __getitem__(self, sid: str) -> Optional[Sentence]:
         if sid in self.sid2sentence:
             return self.sid2sentence[sid]
         else:
             logger.error(f'sentence: {sid} is not in this document')
             return None
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Sentence]:
         return iter(self.sid2sentence.values())
 
     def __str__(self):
