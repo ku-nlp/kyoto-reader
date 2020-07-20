@@ -6,7 +6,6 @@ from abc import abstractmethod
 from pyknp import Tag, Morpheme
 
 from .base_phrase import BasePhrase
-from .coreference import Mention
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -15,25 +14,7 @@ logger.setLevel(logging.WARNING)
 class Predicate(BasePhrase):
     """述語を表すオブジェクト"""
     def __init__(self, bp: BasePhrase, mrph2dmid):
-        super().__init__(bp.tag, bp.dtid, bp.sid, mrph2dmid)
-
-    @property
-    def midasi(self) -> str:
-        mrph_list = self.tag.mrph_list()
-        sidx = 0
-        for i, mrph in enumerate(mrph_list):
-            if mrph.hinsi not in ('助詞', '特殊', '判定詞'):
-                sidx += i
-                break
-        eidx = len(mrph_list)
-        for i, mrph in enumerate(reversed(mrph_list)):
-            if mrph.hinsi not in ('助詞', '特殊', '判定詞'):
-                eidx -= i
-                break
-        ret = ''.join(mrph.midasi for mrph in mrph_list[sidx:eidx])
-        if not ret:
-            ret = self.tag.midasi
-        return ret
+        super().__init__(bp.tag, bp.dtid, bp.sid, mrph2dmid, parent=bp.parent, children=bp.children)
 
 
 class BaseArgument:
@@ -46,11 +27,6 @@ class BaseArgument:
     @property
     def is_special(self) -> bool:
         return self.dep_type == 'exo'
-
-    @property
-    @abstractmethod
-    def eids(self) -> Set[int]:
-        raise NotImplementedError
 
     @property
     @abstractmethod
@@ -71,38 +47,21 @@ class Argument(BasePhrase, BaseArgument):
     """ 文中に出現する(外界ではない)項を表すオブジェクト
 
     Args:
-        mention (Mention): メンション
+        bp (BasePhrase): 基本句
         dep_type (str): 係り受けタイプ ("overt", "dep", "intra", "inter", "exo")
         mode (str): モード
         mrph2dmid (dict): 形態素とその文書レベルIDを紐付ける辞書
     """
 
     def __init__(self,
-                 mention: Mention,
+                 bp: BasePhrase,
                  dep_type: str,
                  mode: str,
                  mrph2dmid: Dict[Morpheme, int]
                  ) -> None:
-        super(Argument, self).__init__(mention.tag, mention.dtid, mention.sid, mrph2dmid)  # initialize BasePhrase
+        # initialize BasePhrase
+        super(Argument, self).__init__(bp.tag, bp.dtid, bp.sid, mrph2dmid, parent=bp.parent, children=bp.children)
         super(BasePhrase, self).__init__(dep_type, mode)  # initialize BaseArgument
-        self.mention = mention
-
-    @property
-    def eids(self) -> Set[int]:
-        return self.mention.eids
-
-    @property
-    def eids_unc(self) -> Set[int]:
-        return self.mention.eids_unc
-
-    @property
-    def all_eids(self) -> Set[int]:
-        return self.mention.all_eids
-
-    @property
-    def midasi(self) -> str:
-        """表記"""
-        return self.mention.midasi
 
     # for test
     def __iter__(self):
@@ -110,7 +69,6 @@ class Argument(BasePhrase, BaseArgument):
         yield self.tid
         yield self.dtid
         yield self.sid
-        yield sorted(self.eids)
         yield self.dep_type
         yield self.mode
 
@@ -136,17 +94,13 @@ class SpecialArgument(BaseArgument):
         self.exophor: str = exophor
 
     @property
-    def eids(self) -> Set[int]:
-        return {self.eid}
-
-    @property
     def midasi(self) -> str:
         return self.exophor
 
     # for test
     def __iter__(self):
         yield self.midasi
-        yield sorted(self.eids)
+        yield self.eid
         yield self.dep_type
         yield self.mode
 
@@ -170,9 +124,9 @@ class Pas:
         self.predicate: Predicate = Predicate(pred_bp, mrph2dmid)
         self.arguments: Dict[str, List[BaseArgument]] = defaultdict(list)
 
-    def add_argument(self, case: str, mention: Mention, mode: str, mrph2dmid: Dict[Morpheme, int]):
-        dep_type = self._get_dep_type(self.predicate.tag, mention.tag, self.predicate.sid, mention.sid, case)
-        argument = Argument(mention, dep_type, mode, mrph2dmid)
+    def add_argument(self, case: str, bp: BasePhrase, mode: str, mrph2dmid: Dict[Morpheme, int]):
+        dep_type = self._get_dep_type(self.predicate.tag, bp.tag, self.predicate.sid, bp.sid, case)
+        argument = Argument(bp, dep_type, mode, mrph2dmid)
         if argument not in self.arguments[case]:
             self.arguments[case].append(argument)
 

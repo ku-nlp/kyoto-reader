@@ -210,8 +210,8 @@ class Document:
                     else:
                         sid = self.sentences[sid2idx[arg.sid] - arg.sdist].sid
                         arg_bp = self._get_bp(sid, arg.tid)
-                        mention = self._create_mention(arg_bp)
-                        pas.add_argument(case, mention, '', self.mrph2dmid)
+                        _ = self._create_mention(arg_bp)
+                        pas.add_argument(case, arg_bp, '', self.mrph2dmid)
             if pas.arguments:
                 self._pas[pas.dtid] = pas
 
@@ -246,8 +246,8 @@ class Document:
                         if arg_bp is None:
                             continue
                         # 項を発見したら同時に mention と entity を作成
-                        mention = self._create_mention(arg_bp)
-                        pas.add_argument(rel.atype, mention, rel.mode, self.mrph2dmid)
+                        _ = self._create_mention(arg_bp)
+                        pas.add_argument(rel.atype, arg_bp, rel.mode, self.mrph2dmid)
                     # exophora
                     else:
                         if rel.target == 'なし':
@@ -526,8 +526,16 @@ class Document:
     def mrph_list(self) -> List[Morpheme]:
         return [mrph for sentence in self.sentences for mrph in sentence.mrph_list()]
 
-    def get_entities(self, bp: BasePhrase) -> List[Entity]:
-        return [e for e in self.entities.values() if any(m.dtid == bp.dtid for m in e.mentions)]
+    def get_entities(self, bp: BasePhrase, include_uncertain: bool = False) -> List[Entity]:
+        """基本句が参照するエンティティを返す
+
+        Args:
+            bp (BasePhrase): 基本句
+            include_uncertain (bool): 参照しているか不確かなエンティティも返すかどうか
+        """
+        mention = self.mentions[bp.dtid]
+        eids = mention.all_eids if include_uncertain else mention.eids
+        return [self.entities[eid] for eid in eids]
 
     def pas_list(self) -> List[Pas]:
         return list(self._pas.values())
@@ -561,8 +569,12 @@ class Document:
         if relax is True:
             for case, args in self._pas[predicate.dtid].arguments.items():
                 for arg in args:
-                    for eid in (arg.all_eids if isinstance(arg, Argument) else arg.eids):
-                        entity = self.entities[eid]
+                    if isinstance(arg, SpecialArgument):
+                        entities = [self.entities[arg.eid]]
+                    else:
+                        assert isinstance(arg, Argument)
+                        entities = self.get_entities(arg, include_uncertain=True)
+                    for entity in entities:
                         if entity.is_special and entity.exophor != arg.midasi:
                             pas.add_special_argument(case, entity.exophor, entity.eid, 'AND')
                         for mention in entity.all_mentions:

@@ -17,117 +17,117 @@ def test_pas(fixture_kyoto_reader: KyotoReader):
     assert len([_ for args in arguments.values() for _ in args]) == 2
     arg = arguments['ガ'][0]
     assert isinstance(arg, SpecialArgument)
-    assert tuple(arg) == ('不特定:人', [0], 'exo', '')
+    assert tuple(arg) == ('不特定:人', 0, 'exo', '')
     arg = arguments['ヲ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('コイン', 0, 0, sid1, [1], 'dep', '')
+    assert tuple(arg) == ('コイン', 0, 0, sid1, 'dep', '')
 
     arguments = document.get_arguments(predicates[1])
     assert predicates[1].midasi == '行う'
     assert len([_ for args in arguments.values() for _ in args]) == 4
     arg = arguments['ガ'][0]
     assert isinstance(arg, SpecialArgument)
-    assert tuple(arg) == ('不特定:人', [2], 'exo', '')
+    assert tuple(arg) == ('不特定:人', 2, 'exo', '')
     arg = arguments['ガ'][1]
     assert isinstance(arg, SpecialArgument)
-    assert tuple(arg) == ('読者', [3], 'exo', '？')
+    assert tuple(arg) == ('読者', 3, 'exo', '？')
     arg = arguments['ガ'][2]
     assert isinstance(arg, SpecialArgument)
-    assert tuple(arg) == ('著者', [4], 'exo', '？')
+    assert tuple(arg) == ('著者', 4, 'exo', '？')
     arg = arguments['ヲ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('トス', 1, 1, sid1, [5], 'overt', '')
+    assert tuple(arg) == ('トス', 1, 1, sid1, 'overt', '')
 
     arguments = document.get_arguments(predicates[2])
     assert predicates[2].midasi == '表'
     assert len([_ for args in arguments.values() for _ in args]) == 1
     arg = arguments['ノ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('コイン', 0, 0, sid1, [1], 'inter', '')
+    assert tuple(arg) == ('コイン', 0, 0, sid1, 'inter', '')
 
     arguments = document.get_arguments(predicates[3])
     assert predicates[3].midasi == '出た'
     assert len([_ for args in arguments.values() for _ in args]) == 2
     arg = arguments['ガ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('表', 0, 4, sid2, [6], 'overt', '')
+    assert tuple(arg) == ('表', 0, 4, sid2, 'overt', '')
     arg = arguments['外の関係'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('数', 2, 6, sid2, [7], 'dep', '')
+    assert tuple(arg) == ('数', 2, 6, sid2, 'dep', '')
 
     arguments = document.get_arguments(predicates[4])
     assert predicates[4].midasi == '数'
     assert len([_ for args in arguments.values() for _ in args]) == 1
     arg = arguments['ノ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('出た', 1, 5, sid2, [8], 'dep', '')
+    assert tuple(arg) == ('出た', 1, 5, sid2, 'dep', '')
 
     arguments = document.get_arguments(predicates[5])
     assert predicates[5].midasi == 'モンスター'
     assert len([_ for args in arguments.values() for _ in args]) == 2
     arg = arguments['修飾'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('フィールド上', 3, 7, sid2, [9], 'dep', '')
+    assert tuple(arg) == ('フィールド上', 3, 7, sid2, 'dep', '')
     arg = arguments['修飾'][1]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('数', 2, 6, sid2, [7], 'intra', 'AND')
+    assert tuple(arg) == ('数', 2, 6, sid2, 'intra', 'AND')
 
     arguments = document.get_arguments(predicates[6])
     assert predicates[6].midasi == '破壊する'
     assert len([_ for args in arguments.values() for _ in args]) == 2
     arg = arguments['ガ'][0]
     assert isinstance(arg, SpecialArgument)
-    assert tuple(arg) == ('不特定:状況', [11], 'exo', '')
+    assert tuple(arg) == ('不特定:状況', 11, 'exo', '')
     arg = arguments['ヲ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('モンスター', 4, 8, sid2, [10], 'overt', '')
+    assert tuple(arg) == ('モンスター', 4, 8, sid2, 'overt', '')
 
     arguments = document.get_arguments(predicates[7])
     assert predicates[7].midasi == '効果'
     assert len([_ for args in arguments.values() for _ in args]) == 1
     arg = arguments['トイウ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('破壊する', 5, 9, sid2, [12], 'inter', '')
+    assert tuple(arg) == ('破壊する', 5, 9, sid2, 'inter', '')
 
     arguments = document.get_arguments(predicates[8])
     assert predicates[8].midasi == '１度'
     assert len([_ for args in arguments.values() for _ in args]) == 1
     arg = arguments['ニ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('ターン', 3, 13, sid3, [13], 'overt', '')
+    assert tuple(arg) == ('ターン', 3, 13, sid3, 'overt', '')
 
     arguments = document.get_arguments(predicates[9])
     assert predicates[9].midasi == 'メイン'
     assert len([_ for args in arguments.values() for _ in args]) == 1
     arg = arguments['ガ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('フェイズ', 7, 17, sid3, [16], 'dep', '')
+    assert tuple(arg) == ('フェイズ', 7, 17, sid3, 'dep', '')
 
     arguments = document.get_arguments(predicates[10])
     assert predicates[10].midasi == 'フェイズ'
     assert len([_ for args in arguments.values() for _ in args]) == 1
     arg = arguments['ノ？'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('自分', 5, 15, sid3, [14], 'overt', '')
+    assert tuple(arg) == ('自分', 5, 15, sid3, 'overt', '')
 
     arguments = document.get_arguments(predicates[11])
     assert predicates[11].midasi == '使用する事ができる'
     assert len([_ for args in arguments.values() for _ in args]) == 5
     arg = arguments['ガ'][0]
     assert isinstance(arg, SpecialArgument)
-    assert tuple(arg) == ('不特定:人', [17], 'exo', '')
+    assert tuple(arg) == ('不特定:人', 17, 'exo', '')
     arg = arguments['ガ'][1]
     assert isinstance(arg, SpecialArgument)
-    assert tuple(arg) == ('著者', [4], 'exo', '？')
+    assert tuple(arg) == ('著者', 4, 'exo', '？')
     arg = arguments['ガ'][2]
     assert isinstance(arg, SpecialArgument)
-    assert tuple(arg) == ('読者', [3], 'exo', '？')
+    assert tuple(arg) == ('読者', 3, 'exo', '？')
     arg = arguments['ヲ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('効果', 1, 11, sid3, [18], 'dep', '')
+    assert tuple(arg) == ('効果', 1, 11, sid3, 'dep', '')
     arg = arguments['ニ'][0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('フェイズ', 7, 17, sid3, [16], 'overt', '')
+    assert tuple(arg) == ('フェイズ', 7, 17, sid3, 'overt', '')
 
 
 def test_pas_relax(fixture_kyoto_reader: KyotoReader):
@@ -142,23 +142,23 @@ def test_pas_relax(fixture_kyoto_reader: KyotoReader):
     args = sorted(arguments['ガ'], key=lambda a: a.dtid)
     arg = args[0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('ドクター', 7, 7, sid1, [4], 'inter', 'AND')
+    assert tuple(arg) == ('ドクター', 7, 7, sid1, 'inter', 'AND')
     arg = args[1]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('ドクター', 2, 11, sid2, [14], 'inter', 'AND')
+    assert tuple(arg) == ('ドクター', 2, 11, sid2, 'inter', 'AND')
     arg = args[2]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('ドクター', 0, 16, sid3, [14], 'intra', 'AND')
+    assert tuple(arg) == ('ドクター', 0, 16, sid3, 'intra', 'AND')
     arg = args[3]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('皆様', 1, 17, sid3, [14], 'intra', '')
+    assert tuple(arg) == ('皆様', 1, 17, sid3, 'intra', '')
     args = sorted(arguments['ニ'], key=lambda a: a.midasi)
     arg = args[0]
     assert isinstance(arg, Argument)
-    assert tuple(arg) == ('コーナー', 5, 14, sid2, [11], 'inter', '？')
+    assert tuple(arg) == ('コーナー', 5, 14, sid2, 'inter', '？')
     arg = args[1]
     assert isinstance(arg, SpecialArgument)
-    assert tuple(arg) == ('著者', [5], 'exo', '')
+    assert tuple(arg) == ('著者', 5, 'exo', '')
 
 
 def test_coref1(fixture_kyoto_reader: KyotoReader):

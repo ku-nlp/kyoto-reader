@@ -21,31 +21,13 @@ class Mention(BasePhrase):
         eids_unc (set): uncertain entity ids
     """
     def __init__(self, bp: BasePhrase, mrph2dmid: Dict[Morpheme, int]):
-        super().__init__(bp.tag, bp.dtid, bp.sid, mrph2dmid)
+        super().__init__(bp.tag, bp.dtid, bp.sid, mrph2dmid, parent=bp.parent, children=bp.children)
         self.eids: Set[int] = set()
         self.eids_unc: Set[int] = set()
 
     @property
     def all_eids(self) -> Set[int]:
         return self.eids | self.eids_unc
-
-    @property
-    def midasi(self) -> str:
-        mrph_list = self.tag.mrph_list()
-        sidx = 0
-        for i, mrph in enumerate(mrph_list):
-            if mrph.hinsi not in ('助詞', '特殊', '判定詞'):
-                sidx += i
-                break
-        eidx = len(mrph_list)
-        for i, mrph in enumerate(reversed(mrph_list)):
-            if mrph.hinsi not in ('助詞', '特殊', '判定詞'):
-                eidx -= i
-                break
-        ret = ''.join(mrph.midasi for mrph in mrph_list[sidx:eidx])
-        if not ret:
-            ret = self.tag.midasi
-        return ret
 
     def is_uncertain_to(self, entity: 'Entity') -> bool:
         if entity.eid in self.eids:
@@ -130,6 +112,7 @@ class Entity:
         self.taigen = (self.taigen is not False) and ('体言' in mention.tag.features)
 
     def remove_mention(self, mention: Mention) -> None:
+        """entity に登録されている mention を削除する"""
         if mention in self.mentions:
             self.mentions.remove(mention)
             mention.eids.remove(self.eid)

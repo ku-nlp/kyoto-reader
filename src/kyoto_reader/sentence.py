@@ -10,12 +10,29 @@ logger.setLevel(logging.WARNING)
 
 
 class Sentence:
+    """ KWDLC(または Kyoto Corpus)の1文書を扱うクラス
+
+    Attributes:
+        blist (BList): KNPのBListオブジェクト
+        doc_id (str): 文書ID
+        bps (List[BasePhrase]): 文に含まれる基本句のリスト
+        mrph2dmid (dict): 形態素IDと文書レベルの形態素IDを紐付ける辞書
+    """
     def __init__(self,
                  knp_string: str,
                  dtid_offset: int,
                  dmid_offset: int,
                  doc_id: str,
                  ) -> None:
+        """
+
+        Args:
+            knp_string(str): 1文についてのKNPのtab出力
+            dtid_offset (int): 文書中でこの文が始まるまでの文書レベル基本句ID
+            dmid_offset (int): 文書中でこの文が始まるまでの文書レベル形態素ID
+            doc_id(str): 文書ID
+        """
+
         self.blist = BList(knp_string)
         self.doc_id: str = doc_id
 
@@ -30,8 +47,15 @@ class Sentence:
             self.bps.append(BasePhrase(tag, dtid, self.sid, self.mrph2dmid))
             dtid += 1
 
+        for bp in self.bps:
+            if bp.tag.parent_id >= 0:
+                bp.parent = self.bps[bp.tag.parent_id]
+            for child in bp.tag.children:
+                bp.children.append(self.bps[child.tag_id])
+
     @property
     def sid(self) -> str:
+        """文ID"""
         return self.blist.sid
 
     @property
@@ -40,6 +64,9 @@ class Sentence:
 
     def bnst_list(self):
         return self.blist.bnst_list()
+
+    def bp_list(self):
+        return self.bps
 
     def tag_list(self):
         return self.blist.tag_list()
