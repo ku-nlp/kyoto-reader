@@ -1,9 +1,9 @@
 import logging
-from typing import List, Dict, Set
+from typing import List, Dict
 from collections import defaultdict
 from abc import abstractmethod
 
-from pyknp import Tag, Morpheme
+from pyknp import Morpheme
 
 from .base_phrase import BasePhrase
 
@@ -125,22 +125,22 @@ class Pas:
         self.arguments: Dict[str, List[BaseArgument]] = defaultdict(list)
 
     def add_argument(self, case: str, bp: BasePhrase, mode: str, mrph2dmid: Dict[Morpheme, int]):
-        dep_type = self._get_dep_type(self.predicate.tag, bp.tag, self.predicate.sid, bp.sid, case)
+        dep_type = self._get_dep_type(self.predicate, bp, case)
         argument = Argument(bp, dep_type, mode, mrph2dmid)
         if argument not in self.arguments[case]:
             self.arguments[case].append(argument)
 
     @staticmethod
-    def _get_dep_type(pred: Tag, arg: Tag, sid_pred: str, sid_arg: str, case: str) -> str:
+    def _get_dep_type(pred: BasePhrase, arg: BasePhrase, case: str) -> str:
         if arg in pred.children:
-            if (case in ('ノ', 'ノ？') and arg.features.get('係', None) in ('ノ格', 'ノ？格')) or \
-                    case.lstrip('判') in arg.features:
+            dep_case = arg.tag.features.get('係', '').rstrip('格')
+            if (case == dep_case) or (case == '判ガ' and dep_case == 'ガ') or (case == 'ノ？' and dep_case == 'ノ'):
                 return 'overt'
             else:
                 return 'dep'
         elif arg is pred.parent:
             return 'dep'
-        elif sid_arg == sid_pred:
+        elif arg.sid == pred.sid:
             return 'intra'
         else:
             return 'inter'

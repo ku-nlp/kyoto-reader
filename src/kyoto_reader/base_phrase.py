@@ -79,5 +79,8 @@ class BasePhrase:
         """形態素列"""
         return self.tag.mrph_list()
 
+    def __eq__(self, other: 'BasePhrase'):
+        return self.sid == other.sid and self.dtid == other.dtid
+
     def __str__(self) -> str:
         return self.tag.midasi
