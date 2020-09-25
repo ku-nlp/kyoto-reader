@@ -13,7 +13,7 @@ About
 
 京都大学ウェブ文書リードコーパス (KWDLC_) や京都大学テキストコーパス (KyotoCorpus_) をパースし、
 述語項構造や共参照関係を扱うためのインターフェースを提供します。
-このツールは pyknp のラッパーであるため、形態素情報や係り受け関係なども扱えます。
+このツールは pyknp のラッパーであるため、形態素情報や係り受け関係なども扱うことが可能です。
 
 .. _KWDLC: https://github.com/ku-nlp/KWDLC
 .. _KyotoCorpus: https://github.com/ku-nlp/KyotoCorpus
@@ -24,11 +24,11 @@ Requirements
 
 - Python
     -  Verified Versions: 3.6, 3.7, 3.8
-- `pyknp 0.4.1`_
+- `pyknp 0.4.5`_
 - KNP (optional)
 - JumanDIC_ (optional)
 
-.. _`pyknp 0.4.1`: https://github.com/ku-nlp/pyknp
+.. _`pyknp 0.4.5`: https://github.com/ku-nlp/pyknp
 .. _JumanDIC: https://github.com/ku-nlp/JumanDIC
 
 
