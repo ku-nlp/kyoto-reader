@@ -14,6 +14,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../../src/kyoto_reader'))
 sys.path.insert(0, os.path.abspath('../../src'))
+import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
@@ -35,6 +36,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.napoleon',  # Google スタイルの docstring を tst に変換する
     'recommonmark',
+    'sphinx_rtd_theme',
 ]
 
 autosummary_generate = True
@@ -80,13 +82,15 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+# html_theme = 'alabaster'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# ---sphinx-themes-----
+html_theme = 'sphinx_rtd_theme'
 
 # -- Options for LaTeX output ------------------------------------------------
 
