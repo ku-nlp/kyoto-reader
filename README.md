@@ -8,7 +8,7 @@
 
 - Python 3.7.2+
 - [pyknp](https://github.com/ku-nlp/pyknp) 0.4.1
-- [KNP](http://nlp.ist.i.kyoto-u.ac.jp/index.php?KNP) 4.2 (optinal)
+- [KNP](http://nlp.ist.i.kyoto-u.ac.jp/index.php?KNP) 4.2 (optional)
 - [JumanDIC](https://github.com/ku-nlp/JumanDIC) (optional)
 
 ## Installation
