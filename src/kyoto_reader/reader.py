@@ -13,7 +13,7 @@ from .sentence import Sentence
 from .pas import Pas, Predicate, BaseArgument, Argument, SpecialArgument
 from .coreference import Mention, Entity
 from .ne import NamedEntity
-from .constants import ALL_CASES, CORE_CASES, ALL_EXOPHORS, ALL_COREFS, CORE_COREFS, NE_CATEGORIES
+from .constants import ALL_CASES, ALL_EXOPHORS, ALL_COREFS, NE_CATEGORIES
 from .base_phrase import BasePhrase
 
 logger = logging.getLogger(__name__)
@@ -24,45 +24,42 @@ class KyotoReader:
     """ KWDLC(または Kyoto Corpus)の文書集合を扱うクラス
 
     Args:
-        source (Union[Path, str]): 入力ソース．Path オブジェクトを指定するとその場所のファイルを読む
-        target_cases (Optional[List[str]]): 抽出の対象とする格
-        target_corefs (Optional[List[str]]): 抽出の対象とする共参照関係(=など)
-        relax_cases (bool): ガ≒格などをガ格として扱うか
+        source (Union[Path, str]): 対象の文書へのパス。ディレクトリが指定された場合、その中の全てのファイルを対象とする
+        target_cases (Optional[List[str]]): 抽出の対象とする格。指定されなかった場合、全ての格を対象とする
+        target_corefs (Optional[List[str]]): 抽出の対象とする共参照関係(=など)。指定されなかった場合、全ての関係を対象とする
         extract_nes (bool): 固有表現をコーパスから抽出するかどうか
+        relax_cases (bool): ガ≒格などをガ格として扱うか
         knp_ext (str): KWDLC または KC ファイルの拡張子
         pickle_ext (str): Document を pickle 形式で読む場合の拡張子
         use_pas_tag (bool): <rel>タグからではなく、<述語項構造:>タグから PAS を読むかどうか
-        recursive (bool): source がディレクトリのときファイルを再帰的に探索するかどうか
+        recursive (bool): source がディレクトリの場合、文書ファイルを再帰的に探索するかどうか
     """
     def __init__(self,
                  source: Union[Path, str],
-                 target_cases: Optional[List[str]],
-                 target_corefs: Optional[List[str]],
-                 relax_cases: bool = False,
+                 target_cases: Optional[List[str]] = None,
+                 target_corefs: Optional[List[str]] = None,
                  extract_nes: bool = True,
+                 relax_cases: bool = False,
                  use_pas_tag: bool = False,
                  knp_ext: str = '.knp',
                  pickle_ext: str = '.pkl',
                  recursive: bool = False,
                  ) -> None:
         if not (isinstance(source, Path) or isinstance(source, str)):
-            raise TypeError(f'source must be Path or str type, but got {type(source)}')
-        if isinstance(source, Path):
-            if source.is_dir():
-                logger.info(f'got directory path, files in the directory is treated as source files')
-                file_paths: List[Path] = []
-                for ext in (knp_ext, pickle_ext):
-                    file_paths += sorted(source.glob(f'**/*{ext}' if recursive else f'*{ext}'))
-                self.did2source: Dict[str, Union[Path, str]] = OrderedDict((path.stem, path) for path in file_paths)
-            else:
-                logger.info(f'got file path, this file is treated as a source knp file')
-                self.did2source: Dict[str, Union[Path, str]] = {source.stem: source}
+            raise TypeError(f'document source must be Path or str type, but got {type(source)}')
+        source = Path(source)
+        if source.is_dir():
+            logger.info(f'got directory path, files in the directory is treated as source files')
+            file_paths: List[Path] = []
+            for ext in (knp_ext, pickle_ext):
+                file_paths += sorted(source.glob(f'**/*{ext}' if recursive else f'*{ext}'))
+            self.did2source: Dict[str, Union[Path, str]] = OrderedDict((path.stem, path) for path in file_paths)
         else:
-            logger.info(f'got string, this string is treated as a source knp string')
-            self.did2source: Dict[str, Union[Path, str]] = {'doc': source}
+            logger.info(f'got file path, this file is treated as a source knp file')
+            self.did2source: Dict[str, Union[Path, str]] = {source.stem: source}
 
-        self.target_cases: List[str] = self._get_target(target_cases, ALL_CASES, CORE_CASES, 'case')
-        self.target_corefs: List[str] = self._get_target(target_corefs, ALL_COREFS, CORE_COREFS, 'coref')
+        self.target_cases: List[str] = self._get_targets(target_cases, ALL_CASES, 'case')
+        self.target_corefs: List[str] = self._get_targets(target_corefs, ALL_COREFS, 'coref')
         self.relax_cases: bool = relax_cases
         self.extract_nes: bool = extract_nes
         self.use_pas_tag: bool = use_pas_tag
@@ -70,20 +67,18 @@ class KyotoReader:
         self.pickle_ext: str = pickle_ext
 
     @staticmethod
-    def _get_target(input_: Optional[list],
-                    all_: list,
-                    default: list,
-                    type_: str,
-                    ) -> list:
+    def _get_targets(input_: Optional[list],
+                     all_: list,
+                     type_: str,
+                     ) -> list:
         if input_ is None:
-            return default
+            return all_
         target = []
         for item in input_:
             if item not in all_:
                 logger.warning(f'unknown target {type_}: {item}')
                 continue
             target.append(item)
-
         return target
 
     def get_doc_ids(self) -> List[str]:
