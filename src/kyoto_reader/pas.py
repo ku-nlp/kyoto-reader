@@ -11,10 +11,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class Predicate(BasePhrase):
-    """述語を表すオブジェクト"""
-    def __init__(self, bp: BasePhrase, mrph2dmid):
-        super().__init__(bp.tag, bp.dtid, bp.sid, mrph2dmid, parent=bp.parent, children=bp.children)
+# 述語を表すクラス
+Predicate = BasePhrase
 
 
 class BaseArgument:
@@ -119,9 +117,9 @@ class Pas:
         arguments (dict): 格と項
     """
 
-    def __init__(self, pred_bp: BasePhrase, mrph2dmid):
+    def __init__(self, pred_bp: BasePhrase):
         # self.predicate = Predicate(pred_bp.tag, pred_bp.dtid, pred_bp.sid)
-        self.predicate: Predicate = Predicate(pred_bp, mrph2dmid)
+        self.predicate: Predicate = pred_bp
         self.arguments: Dict[str, List[BaseArgument]] = defaultdict(list)
 
     def add_argument(self, case: str, bp: BasePhrase, mode: str, mrph2dmid: Dict[Morpheme, int]):
@@ -138,7 +136,7 @@ class Pas:
                 return 'overt'
             else:
                 return 'dep'
-        elif arg is pred.parent:
+        elif pred.parent is not None and arg == pred.parent:
             return 'dep'
         elif arg.sid == pred.sid:
             return 'intra'

@@ -196,7 +196,7 @@ class Document:
         for bp in self.bp_list():
             if bp.tag.pas is None:
                 continue
-            pas = Pas(bp, self.mrph2dmid)
+            pas = Pas(bp)
             for case, arguments in bp.tag.pas.arguments.items():
                 if self.relax_cases:
                     if case in ALL_CASES and case.endswith('≒'):
@@ -237,7 +237,7 @@ class Document:
                     rels.append(rel)
 
             # extract PAS
-            pas = Pas(bp, self.mrph2dmid)
+            pas = Pas(bp)
             for rel in rels:
                 if rel.atype in self.cases:
                     if rel.sid is not None:

@@ -130,6 +130,17 @@ def test_pas(fixture_kyoto_reader: KyotoReader):
     assert tuple(arg) == ('フェイズ', 7, 17, sid3, 'overt', '')
 
 
+def test_dep_type(fixture_kyoto_reader: KyotoReader):
+    document = fixture_kyoto_reader.process_document('w201106-0002000028')
+    predicate: Predicate = document.get_predicates()[4]
+    assert predicate.midasi == '同じ'
+    arg = document.get_arguments(predicate, relax=True)['ガ'][1]
+    assert isinstance(arg, Argument)
+    assert arg.midasi == 'フランス'
+    assert arg.dtid == 10
+    assert arg.dep_type == 'dep'
+
+
 def test_pas_relax(fixture_kyoto_reader: KyotoReader):
     document = fixture_kyoto_reader.process_document('w201106-0000060560')
     predicates: List[Predicate] = document.get_predicates()
