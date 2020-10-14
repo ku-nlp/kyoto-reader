@@ -23,7 +23,7 @@ Requirements
 ========================
 
 - Python
-    -  Verified Versions: 3.6, 3.7, 3.8
+    -  Verified Versions: 3.7, 3.8, 3.9
 - `pyknp 0.4.5`_
 - KNP (optional)
 - JumanDIC_ (optional)
