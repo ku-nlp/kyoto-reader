@@ -88,4 +88,4 @@ class Sentence:
         return iter(self.bps)
 
     def __str__(self):
-        return ''.join(bp.midasi for bp in self.bps)
+        return ''.join(str(bp) for bp in self.bps)
