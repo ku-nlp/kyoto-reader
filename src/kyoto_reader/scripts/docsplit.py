@@ -3,7 +3,7 @@ import argparse
 from typing import Dict
 from pathlib import Path
 
-SID_PTN = re.compile(r'^# S-ID:\s*([a-zA-Z0-9-]+)-(\d+) .*$')
+SID_PTN = re.compile(r'^# S-ID:\s*([a-zA-Z0-9-_]+)-(\d+) .*$')
 
 
 def read(path: Path) -> Dict[str, str]:
