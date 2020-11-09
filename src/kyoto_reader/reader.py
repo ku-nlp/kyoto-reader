@@ -1,13 +1,15 @@
 import io
+import re
 import copy
 import _pickle as cPickle
 import logging
 from pathlib import Path
 from typing import List, Dict, Set, Optional, Iterator, Union, TextIO
-from collections import OrderedDict
+from collections import OrderedDict, ChainMap
 
-from pyknp import BList, Bunsetsu, Tag, Morpheme, Rel
 import jaconv
+from joblib import Parallel, delayed
+from pyknp import BList, Bunsetsu, Tag, Morpheme, Rel
 
 from .sentence import Sentence
 from .pas import Pas, Predicate, BaseArgument, Argument, SpecialArgument
@@ -34,6 +36,8 @@ class KyotoReader:
         use_pas_tag (bool): <rel>タグからではなく、<述語項構造:>タグから PAS を読むかどうか
         recursive (bool): source がディレクトリの場合、文書ファイルを再帰的に探索するかどうか
     """
+    SID_PTN = re.compile(r'^# S-ID:\s*([a-zA-Z0-9-_]+)-(\d+) .*$')
+
     def __init__(self,
                  source: Union[Path, str],
                  target_cases: Optional[List[str]] = None,
@@ -46,17 +50,20 @@ class KyotoReader:
                  recursive: bool = False,
                  ) -> None:
         if not (isinstance(source, Path) or isinstance(source, str)):
-            raise TypeError(f'document source must be Path or str type, but got {type(source)}')
+            raise TypeError(f"document source must be Path or str type, but got '{type(source)}' type")
         source = Path(source)
         if source.is_dir():
             logger.info(f'got directory path, files in the directory is treated as source files')
             file_paths: List[Path] = []
             for ext in (knp_ext, pickle_ext):
                 file_paths += sorted(source.glob(f'**/*{ext}' if recursive else f'*{ext}'))
-            self.did2source: Dict[str, Union[Path, str]] = OrderedDict((path.stem, path) for path in file_paths)
         else:
             logger.info(f'got file path, this file is treated as a source knp file')
-            self.did2source: Dict[str, Union[Path, str]] = {source.stem: source}
+            file_paths = [source]
+        self.did2pkls: Dict[str, Path] = {path.stem: path for path in file_paths if path.suffix == pickle_ext}
+        parallel = Parallel(n_jobs=-1)
+        rets = parallel([delayed(KyotoReader._read_knp)(path) for path in file_paths if path.suffix == knp_ext])
+        self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
 
         self.target_cases: List[str] = self._get_targets(target_cases, ALL_CASES, 'case')
         self.target_corefs: List[str] = self._get_targets(target_corefs, ALL_COREFS, 'coref')
@@ -65,6 +72,25 @@ class KyotoReader:
         self.use_pas_tag: bool = use_pas_tag
         self.knp_ext: str = knp_ext
         self.pickle_ext: str = pickle_ext
+
+    @staticmethod
+    def _read_knp(path: Path) -> Dict[str, str]:
+        did2knps = {}
+        with path.open() as f:
+            buff = ''
+            did = None
+            for line in f:
+                match = KyotoReader.SID_PTN.match(line.strip())
+                if match:
+                    # sid = match.group(1) + '-' + match.group(2)
+                    if did != match.group(1):
+                        if did is not None:
+                            did2knps[did] = buff
+                            buff = ''
+                        did = match.group(1)
+                buff += line
+            did2knps[did] = buff
+        return did2knps
 
     @staticmethod
     def _get_targets(input_: Optional[list],
@@ -81,39 +107,35 @@ class KyotoReader:
             target.append(item)
         return target
 
-    def get_doc_ids(self) -> List[str]:
-        return list(self.did2source.keys())
+    def doc_ids(self) -> List[str]:
+        return list(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
 
     def process_document(self, doc_id: str) -> Optional['Document']:
-        if doc_id not in self.did2source:
+        if doc_id in self.did2pkls:
+            with self.did2pkls[doc_id].open(mode='rb') as f:
+                return cPickle.load(f)
+        elif doc_id in self.did2knps:
+            return Document(self.did2knps[doc_id],
+                            doc_id,
+                            self.target_cases,
+                            self.target_corefs,
+                            self.relax_cases,
+                            self.extract_nes,
+                            self.use_pas_tag)
+        else:
             logger.error(f'unknown document id: {doc_id}')
             return None
-        if isinstance(self.did2source[doc_id], Path):
-            if self.did2source[doc_id].suffix == self.pickle_ext:
-                with self.did2source[doc_id].open(mode='rb') as f:
-                    return cPickle.load(f)
-            elif self.did2source[doc_id].suffix == self.knp_ext:
-                with self.did2source[doc_id].open() as f:
-                    input_string = f.read()
-            else:
-                return None
-        else:
-            input_string = self.did2source[doc_id]
-        return Document(input_string,
-                        doc_id,
-                        self.target_cases,
-                        self.target_corefs,
-                        self.relax_cases,
-                        self.extract_nes,
-                        self.use_pas_tag)
 
     def process_documents(self, doc_ids: List[str]) -> Iterator[Optional['Document']]:
         for doc_id in doc_ids:
             yield self.process_document(doc_id)
 
     def process_all_documents(self) -> Iterator['Document']:
-        for doc_id in self.did2source.keys():
+        for doc_id in self.doc_ids():
             yield self.process_document(doc_id)
+
+    def __len__(self):
+        return len(self.doc_ids())
 
 
 class Document:
