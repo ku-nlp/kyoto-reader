@@ -1,6 +1,7 @@
 include README.md
 include LICENSE
 include src/kyoto_reader/VERSION
+include src/kyoto_reader/scripts/template.mk
 graft tests
 global-exclude __pycache__
 global-exclude *.py[co]
