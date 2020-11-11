@@ -2,25 +2,7 @@ import argparse
 from typing import Dict
 from pathlib import Path
 
-from kyoto_reader.constants import SID_PTN
-
-
-def read(path: Path) -> Dict[str, str]:
-    docs: Dict[str, str] = {}
-    did = None
-    with path.open() as f:
-        buff = ''
-        for line in f:
-            if line.startswith('# S-ID'):
-                match = SID_PTN.match(line.strip())
-                if did != match.group(1):
-                    if did is not None:
-                        docs[did] = buff
-                        buff = ''
-                    did = match.group(1)
-            buff += line
-        docs[did] = buff
-    return docs
+from kyoto_reader import KyotoReader
 
 
 def main():
@@ -33,7 +15,7 @@ def main():
 
     docs: Dict[str, str] = {}
     for path in Path(args.input_dir).glob('**/*.knp'):
-        docs.update(read(path))
+        docs.update(KyotoReader.read_knp(path))
 
     for did, knp_string in docs.items():
         out_path = Path(args.output_dir) / f'{did}.knp'

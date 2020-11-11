@@ -60,7 +60,7 @@ class KyotoReader:
             file_paths = [source]
         self.did2pkls: Dict[str, Path] = {path.stem: path for path in file_paths if path.suffix == pickle_ext}
         parallel = Parallel(n_jobs=-1)
-        rets = parallel([delayed(KyotoReader._read_knp)(path) for path in file_paths if path.suffix == knp_ext])
+        rets = parallel([delayed(KyotoReader.read_knp)(path) for path in file_paths if path.suffix == knp_ext])
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
 
         self.target_cases: List[str] = self._get_targets(target_cases, ALL_CASES, 'case')
@@ -72,19 +72,20 @@ class KyotoReader:
         self.pickle_ext: str = pickle_ext
 
     @staticmethod
-    def _read_knp(path: Path) -> Dict[str, str]:
+    def read_knp(path: Path) -> Dict[str, str]:
         did2knps = {}
         with path.open() as f:
             buff = ''
-            did = None
+            did = sid = None
             for line in f:
                 match = SID_PTN.match(line.strip())
                 if match:
-                    if did != match.group(1):
+                    if did != match.group('did') or sid == match.group('sid'):
                         if did is not None:
                             did2knps[did] = buff
                             buff = ''
-                        did = match.group(1)
+                        did = match.group('did')
+                        sid = match.group('sid')
                 buff += line
             did2knps[did] = buff
         return did2knps
