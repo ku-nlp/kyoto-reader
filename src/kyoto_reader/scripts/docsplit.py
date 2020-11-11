@@ -1,9 +1,8 @@
-import re
 import argparse
 from typing import Dict
 from pathlib import Path
 
-SID_PTN = re.compile(r'^# S-ID:\s*([a-zA-Z0-9-_]+)-(\d+) .*$')
+from kyoto_reader.constants import SID_PTN
 
 
 def read(path: Path) -> Dict[str, str]:
@@ -14,7 +13,6 @@ def read(path: Path) -> Dict[str, str]:
         for line in f:
             if line.startswith('# S-ID'):
                 match = SID_PTN.match(line.strip())
-                # sid = match.group(1) + '-' + match.group(2)
                 if did != match.group(1):
                     if did is not None:
                         docs[did] = buff

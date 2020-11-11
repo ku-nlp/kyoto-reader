@@ -1,5 +1,4 @@
 import io
-import re
 import copy
 import _pickle as cPickle
 import logging
@@ -15,7 +14,7 @@ from .sentence import Sentence
 from .pas import Pas, Predicate, BaseArgument, Argument, SpecialArgument
 from .coreference import Mention, Entity
 from .ne import NamedEntity
-from .constants import ALL_CASES, ALL_EXOPHORS, ALL_COREFS, NE_CATEGORIES
+from .constants import ALL_CASES, ALL_EXOPHORS, ALL_COREFS, NE_CATEGORIES, SID_PTN
 from .base_phrase import BasePhrase
 
 logger = logging.getLogger(__name__)
@@ -36,7 +35,6 @@ class KyotoReader:
         use_pas_tag (bool): <rel>タグからではなく、<述語項構造:>タグから PAS を読むかどうか
         recursive (bool): source がディレクトリの場合、文書ファイルを再帰的に探索するかどうか
     """
-    SID_PTN = re.compile(r'^# S-ID:\s*([a-zA-Z0-9-_]+)-(\d+) .*$')
 
     def __init__(self,
                  source: Union[Path, str],
@@ -80,9 +78,8 @@ class KyotoReader:
             buff = ''
             did = None
             for line in f:
-                match = KyotoReader.SID_PTN.match(line.strip())
+                match = SID_PTN.match(line.strip())
                 if match:
-                    # sid = match.group(1) + '-' + match.group(2)
                     if did != match.group(1):
                         if did is not None:
                             did2knps[did] = buff

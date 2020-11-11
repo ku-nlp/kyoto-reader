@@ -1,3 +1,5 @@
+import re
+
 ALL_CASES = [
     'ガ',
     'デ',
@@ -127,3 +129,5 @@ NE_CATEGORIES = [
     'PERCENT',
     'OPTIONAL',
 ]
+
+SID_PTN = re.compile(r'^# S-ID:\s*([a-zA-Z0-9-_]+?)(?:-(\d+))? .*$')
