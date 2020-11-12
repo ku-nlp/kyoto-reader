@@ -74,7 +74,7 @@ class Argument(BasePhrase, BaseArgument):
         return f'{self.midasi} (sid: {self.sid}, tid: {self.tid}, dtid: {self.dtid})'
 
     def __eq__(self, other: BaseArgument):
-        return isinstance(other, Argument) and self.dtid == other.dtid
+        return isinstance(other, Argument) and self.sid == other.sid and self.dtid == other.dtid
 
 
 class SpecialArgument(BaseArgument):
