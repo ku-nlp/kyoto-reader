@@ -62,6 +62,7 @@ class KyotoReader:
         parallel = Parallel(n_jobs=-1)
         rets = parallel([delayed(KyotoReader.read_knp)(path) for path in file_paths if path.suffix == knp_ext])
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
+        self.doc_ids: List[str] = sorted(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
 
         self.target_cases: List[str] = self._get_targets(target_cases, ALL_CASES, 'case')
         self.target_corefs: List[str] = self._get_targets(target_corefs, ALL_COREFS, 'coref')
@@ -105,9 +106,6 @@ class KyotoReader:
             target.append(item)
         return target
 
-    def doc_ids(self) -> List[str]:
-        return list(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
-
     def process_document(self, doc_id: str) -> Optional['Document']:
         if doc_id in self.did2pkls:
             with self.did2pkls[doc_id].open(mode='rb') as f:
@@ -129,11 +127,11 @@ class KyotoReader:
             yield self.process_document(doc_id)
 
     def process_all_documents(self) -> Iterator['Document']:
-        for doc_id in self.doc_ids():
+        for doc_id in self.doc_ids:
             yield self.process_document(doc_id)
 
     def __len__(self):
-        return len(self.doc_ids())
+        return len(self.doc_ids)
 
 
 class Document:
