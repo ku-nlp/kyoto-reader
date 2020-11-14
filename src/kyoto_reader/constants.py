@@ -130,4 +130,5 @@ NE_CATEGORIES = [
     'OPTIONAL',
 ]
 
-SID_PTN = re.compile(r'^# S-ID:\s*(?P<sid>(?P<did>[a-zA-Z0-9-_]+?)(-(\d+))?) .*$')
+SID_PTN = re.compile(r'^(?P<sid>(?P<did>[a-zA-Z0-9-_]+?)(-(\d+))?)$')
+SID_PTN_KWDLC = re.compile(r'^(?P<sid>(?P<did>w\d{6}-\d{10})(-\d+){1,2})$')

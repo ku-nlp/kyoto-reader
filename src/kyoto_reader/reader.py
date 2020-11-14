@@ -14,7 +14,7 @@ from .sentence import Sentence
 from .pas import Pas, Predicate, BaseArgument, Argument, SpecialArgument
 from .coreference import Mention, Entity
 from .ne import NamedEntity
-from .constants import ALL_CASES, ALL_EXOPHORS, ALL_COREFS, NE_CATEGORIES, SID_PTN
+from .constants import ALL_CASES, ALL_EXOPHORS, ALL_COREFS, NE_CATEGORIES, SID_PTN, SID_PTN_KWDLC
 from .base_phrase import BasePhrase
 
 logger = logging.getLogger(__name__)
@@ -79,8 +79,13 @@ class KyotoReader:
             buff = ''
             did = sid = None
             for line in f:
-                match = SID_PTN.match(line.strip())
-                if match:
+                if line.startswith('# S-ID:'):
+                    sid_string = line[7:].strip().split()[0]
+                    match = SID_PTN_KWDLC.match(sid_string)
+                    if match is None:
+                        match = SID_PTN.match(sid_string)
+                    if match is None:
+                        raise ValueError(f'unsupported S-ID format: {sid_string} in {path}')
                     if did != match.group('did') or sid == match.group('sid'):
                         if did is not None:
                             did2knps[did] = buff
