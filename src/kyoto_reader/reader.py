@@ -26,14 +26,16 @@ class KyotoReader:
 
     Args:
         source (Union[Path, str]): 対象の文書へのパス。ディレクトリが指定された場合、その中の全てのファイルを対象とする
-        target_cases (Optional[List[str]]): 抽出の対象とする格。指定されなかった場合、全ての格を対象とする
-        target_corefs (Optional[List[str]]): 抽出の対象とする共参照関係(=など)。指定されなかった場合、全ての関係を対象とする
-        extract_nes (bool): 固有表現をコーパスから抽出するかどうか
-        relax_cases (bool): ガ≒格などをガ格として扱うか
-        knp_ext (str): KWDLC または KC ファイルの拡張子
-        pickle_ext (str): Document を pickle 形式で読む場合の拡張子
-        use_pas_tag (bool): <rel>タグからではなく、<述語項構造:>タグから PAS を読むかどうか
-        recursive (bool): source がディレクトリの場合、文書ファイルを再帰的に探索するかどうか
+        target_cases (Optional[List[str]]): 抽出の対象とする格。(default: 全ての格)
+        target_corefs (Optional[List[str]]): 抽出の対象とする共参照関係(=など)。(default: 全ての関係)
+        extract_nes (bool): 固有表現をコーパスから抽出するかどうか (default: True)
+        relax_cases (bool): ガ≒格などをガ格として扱うか (default: False)
+        knp_ext (str): KWDLC または KC ファイルの拡張子 (default: knp)
+        pickle_ext (str): Document を pickle 形式で読む場合の拡張子 (default: pkl)
+        use_pas_tag (bool): <rel>タグからではなく、<述語項構造:>タグから PAS を読むかどうか (default: False)
+        recursive (bool): source がディレクトリの場合、文書ファイルを再帰的に探索するかどうか (default: False)
+        n_jobs (int): 文書を読み込む処理の並列数 (default: -1(=コア数))
+        did_from_sid (bool): 文書IDを文書中のS-IDから決定する (default: True)
     """
 
     def __init__(self,
@@ -46,6 +48,8 @@ class KyotoReader:
                  knp_ext: str = '.knp',
                  pickle_ext: str = '.pkl',
                  recursive: bool = False,
+                 n_jobs: int = -1,
+                 did_from_sid: bool = True,
                  ) -> None:
         if not (isinstance(source, Path) or isinstance(source, str)):
             raise TypeError(f"document source must be Path or str type, but got '{type(source)}' type")
@@ -59,8 +63,9 @@ class KyotoReader:
             logger.info(f'got file path, this file is treated as a source knp file')
             file_paths = [source]
         self.did2pkls: Dict[str, Path] = {path.stem: path for path in file_paths if path.suffix == pickle_ext}
-        parallel = Parallel(n_jobs=-1)
-        rets = parallel([delayed(KyotoReader.read_knp)(path) for path in file_paths if path.suffix == knp_ext])
+        parallel = Parallel(n_jobs=n_jobs)
+        rets = parallel([delayed(KyotoReader.read_knp)(path, did_from_sid)
+                         for path in file_paths if path.suffix == knp_ext])
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
         self.doc_ids: List[str] = sorted(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
 
@@ -73,13 +78,13 @@ class KyotoReader:
         self.pickle_ext: str = pickle_ext
 
     @staticmethod
-    def read_knp(path: Path) -> Dict[str, str]:
+    def read_knp(path: Path, did_from_sid: bool) -> Dict[str, str]:
         did2knps = {}
         with path.open() as f:
             buff = ''
             did = sid = None
             for line in f:
-                if line.startswith('# S-ID:'):
+                if line.startswith('# S-ID:') and did_from_sid:
                     sid_string = line[7:].strip().split()[0]
                     match = SID_PTN_KWDLC.match(sid_string)
                     if match is None:
@@ -93,6 +98,8 @@ class KyotoReader:
                         did = match.group('did')
                         sid = match.group('sid')
                 buff += line
+            if not did_from_sid:
+                did = path.stem
             did2knps[did] = buff
         return did2knps
 
