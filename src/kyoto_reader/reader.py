@@ -63,9 +63,10 @@ class KyotoReader:
             logger.info(f'got file path, this file is treated as a source knp file')
             file_paths = [source]
         self.did2pkls: Dict[str, Path] = {path.stem: path for path in file_paths if path.suffix == pickle_ext}
-        self.parallel = Parallel(n_jobs=n_jobs)
-        rets = self.parallel(delayed(KyotoReader.read_knp)(path, did_from_sid)
-                             for path in file_paths if path.suffix == knp_ext)
+        self.n_jobs = n_jobs
+        parallel = Parallel(n_jobs=n_jobs)
+        rets = parallel(delayed(KyotoReader.read_knp)(path, did_from_sid)
+                        for path in file_paths if path.suffix == knp_ext)
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
         self.doc_ids: List[str] = sorted(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
 
@@ -135,14 +136,15 @@ class KyotoReader:
             return None
 
     def process_documents(self, doc_ids: List[str]) -> List[Optional['Document']]:
-        return self.parallel(delayed(KyotoReader._unwrap_self)(x) for x in zip([self] * len(doc_ids), doc_ids))
+        parallel = Parallel(n_jobs=self.n_jobs)
+        return parallel([delayed(KyotoReader._unwrap_self)(self, x) for x in doc_ids])
 
     def process_all_documents(self) -> List['Document']:
         return self.process_documents(self.doc_ids)
 
     @staticmethod
-    def _unwrap_self(arg, **kwarg):
-        return KyotoReader.process_document(*arg, **kwarg)
+    def _unwrap_self(self_, *arg, **kwarg):
+        return KyotoReader.process_document(self_, *arg, **kwarg)
 
     def __len__(self):
         return len(self.doc_ids)
