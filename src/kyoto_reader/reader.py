@@ -630,15 +630,30 @@ class Document:
         return mentions
 
     def draw_tree(self,
-                  sid: str,
-                  coreference: bool,
+                  sid: str = None,
                   fh: Optional[TextIO] = None,
                   ) -> None:
+        """sid で指定された文の述語項構造・共参照関係をツリー形式で fh に書き出す
+        sid が指定されなければ文書に含まれる全ての文を出力
+
+        Args:
+           sid (str): 出力対象の文ID
+           fh (Optional[TextIO]): 出力ストリーム
+        """
+        if sid is None:
+            for _sid in self.sid2sentence.keys():
+                self._draw_sent_tree(_sid, fh)
+        else:
+            self._draw_sent_tree(sid, fh)
+
+    def _draw_sent_tree(self,
+                        sid: str,
+                        fh: Optional[TextIO] = None,
+                        ) -> None:
         """sid で指定された文の述語項構造・共参照関係をツリー形式で fh に書き出す
 
         Args:
            sid (str): 出力対象の文ID
-           coreference (bool): 共参照関係も出力するかどうか
            fh (Optional[TextIO]): 出力ストリーム
         """
         blist: BList = self[sid].blist
@@ -647,6 +662,7 @@ class Document:
             tree_strings = string.getvalue().rstrip('\n').split('\n')
         assert len(tree_strings) == len(blist.tag_list())
         all_midasis = [m.midasi for m in self.mentions.values()]
+        # predicate-argument structure
         for predicate in filter(lambda p: p.sid == sid, self.get_predicates()):
             idx = predicate.tid
             tree_strings[idx] += '  '
@@ -659,25 +675,23 @@ class Document:
                     if all_midasis.count(arg.midasi) > 1 and isinstance(arg, Argument):
                         target += str(arg.dtid)
                     targets.add(target)
-                tree_strings[idx] += f'{",".join(targets)}:{case} '
-        if coreference:
-            for src_mention in filter(lambda m: m.sid == sid, self.mentions.values()):
-                tgt_mentions = [tgt for tgt in self.get_siblings(src_mention) if tgt.dtid < src_mention.dtid]
-                targets = set()
-                for tgt_mention in tgt_mentions:
-                    target = tgt_mention.midasi
-                    if all_midasis.count(target) > 1:
-                        target += str(tgt_mention.dtid)
-                    targets.add(target)
-                for eid in src_mention.eids:
-                    entity = self.entities[eid]
-                    if entity.is_special:
-                        targets.add(entity.exophor)
-                if not targets:
-                    continue
-                idx = src_mention.tid
-                tree_strings[idx] += '  ＝:'
-                tree_strings[idx] += ','.join(targets)
+                if targets:
+                    tree_strings[idx] += f'{",".join(targets)}:{case} '
+        # coreference
+        for src_mention in filter(lambda m: m.sid == sid, self.mentions.values()):
+            tgt_mentions = [tgt for tgt in self.get_siblings(src_mention) if tgt.dtid < src_mention.dtid]
+            targets = set()
+            for tgt_mention in tgt_mentions:
+                target = tgt_mention.midasi
+                if all_midasis.count(target) > 1:
+                    target += str(tgt_mention.dtid)
+                targets.add(target)
+            for eid in src_mention.eids:
+                entity = self.entities[eid]
+                if entity.is_special:
+                    targets.add(entity.exophor)
+            if targets:
+                tree_strings[src_mention.tid] += f'  ＝:{",".join(targets)}'
 
         print('\n'.join(tree_strings), file=fh)
 
