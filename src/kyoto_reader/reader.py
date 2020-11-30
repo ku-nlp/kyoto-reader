@@ -4,7 +4,7 @@ import _pickle as cPickle
 import logging
 from pathlib import Path
 from typing import List, Dict, Set, Optional, Iterator, Union, TextIO
-from collections import OrderedDict, ChainMap
+from collections import OrderedDict, ChainMap, defaultdict
 
 import jaconv
 from joblib import Parallel, delayed
@@ -590,7 +590,7 @@ class Document:
             Dict[str, List[BaseArgument]]: 格を key とする述語の項の辞書
         """
         if predicate.dtid not in self._pas:
-            return {}
+            return defaultdict(list)
         pas = copy.copy(self._pas[predicate.dtid])
         pas.arguments = cPickle.loads(cPickle.dumps(pas.arguments, -1))
         if include_optional is False:
