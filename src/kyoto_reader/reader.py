@@ -101,7 +101,10 @@ class KyotoReader:
                 buff += line
             if not did_from_sid:
                 did = path.stem
-            did2knps[did] = buff
+            if did is not None and buff:
+                did2knps[did] = buff
+            else:
+                logger.warning(f'empty file found and skipped: {path}')
         return did2knps
 
     @staticmethod
