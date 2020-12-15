@@ -14,7 +14,7 @@ class BasePhrase:
         tag (Tag): KNPの基本句オブジェクト
         sid (str): 自身を含む文の文ID
         dtid (int): 文書レベル基本句ID
-        core_dmid (int): 自身に含まれる内容語形態素の文書レベルの形態素ID
+        content_dmid (int): 自身に含まれる内容語形態素の文書レベルの形態素ID
         parent (Optional[BasePhrase]): 係り先
         children (List[BasePhrase]): 係り元
     """
@@ -49,8 +49,8 @@ class BasePhrase:
             self._mrph2dmid[mrph] = dmid
             dmid += 1
 
-        self.core: Morpheme = self._get_content_word()
-        self.core_dmid: int = self._mrph2dmid[self.core]
+        self.content: Morpheme = self._get_content_word()
+        self.content_dmid: int = self._mrph2dmid[self.content]
         self.parent: Optional['BasePhrase'] = parent
         self.children: List['BasePhrase'] = children if children is not None else []
 
@@ -65,7 +65,7 @@ class BasePhrase:
 
     @property
     def dmid(self) -> int:
-        return self.core_dmid
+        return self.content_dmid
 
     @property
     def tid(self) -> int:
@@ -73,7 +73,8 @@ class BasePhrase:
         return self.tag.tag_id
 
     @property
-    def midasi(self) -> str:
+    def core(self) -> str:
+        """助詞等を除いた中心的表現"""
         mrph_list = self.tag.mrph_list()
         sidx = 0
         for i, mrph in enumerate(mrph_list):
@@ -135,4 +136,4 @@ class BasePhrase:
         return self.surf
 
     def __repr__(self) -> str:
-        return f'BasePhrase: ' + ' '.join(m.midasi for m in self)
+        return f'BasePhrase(mrphs: f{" ".join(m.midasi for m in self)}, dtid: {self.dtid}, sid: {self.sid}'

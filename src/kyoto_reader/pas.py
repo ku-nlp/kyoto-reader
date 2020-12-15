@@ -24,9 +24,8 @@ class BaseArgument:
     def is_special(self) -> bool:
         return self.dep_type == 'exo'
 
-    @property
     @abstractmethod
-    def midasi(self) -> str:
+    def __str__(self) -> str:
         raise NotImplementedError
 
     @abstractmethod
@@ -57,20 +56,23 @@ class Argument(BasePhrase, BaseArgument):
                                        children=bp.children)  # initialize BasePhrase
         super(BasePhrase, self).__init__(dep_type, mode)  # initialize BaseArgument
 
+    def __repr__(self):
+        return f'Argument(bp: {repr(super(Argument, self))}, dep_type: {self.dep_type}, mode: {self.mode})'
+
+    def __str__(self) -> str:
+        return self.core
+
+    def __eq__(self, other: BaseArgument):
+        return isinstance(other, Argument) and self.sid == other.sid and self.dtid == other.dtid
+
     # for test
     def __iter__(self):
-        yield self.midasi
+        yield self.core
         yield self.tid
         yield self.dtid
         yield self.sid
         yield self.dep_type
         yield self.mode
-
-    def __repr__(self):
-        return f'{self.midasi} (sid: {self.sid}, tid: {self.tid}, dtid: {self.dtid})'
-
-    def __eq__(self, other: BaseArgument):
-        return isinstance(other, Argument) and self.sid == other.sid and self.dtid == other.dtid
 
 
 class SpecialArgument(BaseArgument):
@@ -87,19 +89,21 @@ class SpecialArgument(BaseArgument):
         super().__init__(dep_type, mode)
         self.exophor: str = exophor
 
-    @property
-    def midasi(self) -> str:
-        return self.exophor
+    def __repr__(self):
+        return f'SpecialArgument(exophor: {self.exophor}, eid: {self.eid}, mode: {self.mode})'
 
-    # for test
-    def __iter__(self):
-        yield self.midasi
-        yield self.eid
-        yield self.dep_type
-        yield self.mode
+    def __str__(self) -> str:
+        return self.exophor
 
     def __eq__(self, other: BaseArgument):
         return isinstance(other, SpecialArgument) and self.exophor == other.exophor
+
+    # for test
+    def __iter__(self):
+        yield self.exophor
+        yield self.eid
+        yield self.dep_type
+        yield self.mode
 
 
 class Pas:
@@ -150,7 +154,7 @@ class Pas:
             return
         for arg in self.arguments[case]:
             arg.optional = True
-            logger.info(f'{self.sid:24}marked {arg.midasi} as optional')
+            logger.info(f'{self.sid:24}marked {arg} as optional')
 
     @property
     def dtid(self) -> int:

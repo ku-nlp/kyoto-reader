@@ -256,14 +256,14 @@ class Document:
                         rel.atype = rel.atype.rstrip('≒')  # ガ≒ -> ガ
                 valid = True
                 if rel.sid is not None and rel.sid not in self.sid2sentence:
-                    logger.warning(f'{bp.sid}:sentence: {rel.sid} not found in {self.doc_id}')
+                    logger.warning(f'{bp.sid}: sentence: {rel.sid} not found in {self.doc_id}')
                     valid = False
                 if rel.atype in (ALL_CASES + ALL_COREFS):
                     if rel.atype not in (self.cases + self.corefs):
-                        logger.info(f'{bp.sid}:relation type: {rel.atype} is ignored')
+                        logger.info(f'{bp.sid}: relation type: {rel.atype} is ignored')
                         valid = False
                 else:
-                    logger.warning(f'{bp.sid}:unknown relation: {rel.atype}')
+                    logger.warning(f'{bp.sid}: unknown relation: {rel.atype}')
                 if valid:
                     rels.append(rel)
 
@@ -329,12 +329,12 @@ class Document:
             if target_bp is None:
                 return
             if target_bp.dtid == source_bp.dtid:
-                logger.warning(f'{source_bp.sid}:coreference with self found: {source_bp.midasi}')
+                logger.warning(f'{source_bp.sid}: coreference with self found: {source_bp}')
                 return
         else:
             target_bp = None
             if rel.target not in ALL_EXOPHORS:
-                logger.warning(f'{source_bp.sid}:unknown exophor: {rel.target}')
+                logger.warning(f'{source_bp.sid}: unknown exophor: {rel.target}')
                 return
 
         uncertain: bool = rel.atype.endswith('≒')
@@ -477,7 +477,7 @@ class Document:
         if eid not in self.entities:
             return
         entity = self.entities[eid]
-        logger.info(f'{sid}:delete entity: {eid} ({entity.midasi})')
+        logger.info(f'{sid}: delete entity: {eid} ({entity})')
         for mention in entity.all_mentions:
             entity.remove_mention(mention)
         self.entities.pop(eid)
@@ -497,7 +497,7 @@ class Document:
         """
         sentence = self[sid]
         if not (0 <= tid < len(sentence.bps)):
-            logger.warning(f'{sid}:tag id: {tid} out of range')
+            logger.warning(f'{sid}: tag id: {tid} out of range')
             return None
         return sentence.bps[tid]
 
@@ -509,30 +509,30 @@ class Document:
             for tag in tag_list:
                 if 'NE' not in tag.features:
                     continue
-                category, midasi = tag.features['NE'].split(':', maxsplit=1)
+                category, name = tag.features['NE'].split(':', maxsplit=1)
                 if category not in NE_CATEGORIES:
-                    logger.warning(f'{sentence.sid}:unknown NE category: {category}')
+                    logger.warning(f'{sentence.sid}: unknown NE category: {category}')
                     continue
                 mrph_list = [m for t in tag_list[:tag.tag_id + 1] for m in t.mrph_list()]
-                mrph_span = self._find_mrph_span(midasi, mrph_list, tag)
+                mrph_span = self._find_mrph_span(name, mrph_list, tag)
                 if mrph_span is None:
-                    logger.warning(f'{sentence.sid}:mrph span of "{midasi}" not found')
+                    logger.warning(f'{sentence.sid}: mrph span of \'{name}\' not found')
                     continue
-                ne = NamedEntity(category, midasi, sentence, mrph_span, self._mrph2dmid)
+                ne = NamedEntity(category, name, sentence, mrph_span, self._mrph2dmid)
                 self.named_entities.append(ne)
 
     @staticmethod
-    def _find_mrph_span(midasi: str,
+    def _find_mrph_span(name: str,
                         mrph_list: List[Morpheme],
                         tag: Tag
                         ) -> Optional[range]:
-        """midasiにマッチする形態素の範囲を返す"""
+        """nameにマッチする形態素の範囲を返す"""
         for i in range(len(tag.mrph_list())):
             end_mid = len(mrph_list) - i
             mrph_span = ''
             for mrph in reversed(mrph_list[:end_mid]):
                 mrph_span = mrph.midasi + mrph_span
-                if mrph_span == midasi:
+                if mrph_span == name:
                     return range(mrph.mrph_id, end_mid)
         return None
 
@@ -618,7 +618,7 @@ class Document:
                         assert isinstance(arg, Argument)
                         entities = self.get_entities(arg, include_uncertain=True)
                     for entity in entities:
-                        if entity.is_special and entity.exophor != arg.midasi:
+                        if entity.is_special and entity.exophor != str(arg):
                             pas.add_special_argument(case, entity.exophor, entity.eid, 'AND')
                         for mention in entity.all_mentions:
                             if isinstance(arg, Argument) and mention.dtid == arg.dtid:
@@ -673,7 +673,7 @@ class Document:
             blist.draw_tag_tree(fh=string, show_pos=False)
             tree_strings = string.getvalue().rstrip('\n').split('\n')
         assert len(tree_strings) == len(blist.tag_list())
-        all_midasis = [m.midasi for m in self.mentions.values()]
+        all_targets = [str(m) for m in self.mentions.values()]
         # predicate-argument structure
         for predicate in filter(lambda p: p.sid == sid, self.get_predicates()):
             idx = predicate.tid
@@ -683,8 +683,8 @@ class Document:
                 args = arguments[case]
                 targets = set()
                 for arg in args:
-                    target = arg.midasi
-                    if all_midasis.count(arg.midasi) > 1 and isinstance(arg, Argument):
+                    target = str(arg)
+                    if all_targets.count(str(arg)) > 1 and isinstance(arg, Argument):
                         target += str(arg.dtid)
                     targets.add(target)
                 if targets:
@@ -694,8 +694,8 @@ class Document:
             tgt_mentions = [tgt for tgt in self.get_siblings(src_mention) if tgt.dtid < src_mention.dtid]
             targets = set()
             for tgt_mention in tgt_mentions:
-                target = tgt_mention.midasi
-                if all_midasis.count(target) > 1:
+                target = str(tgt_mention)
+                if all_targets.count(target) > 1:
                     target += str(tgt_mention.dtid)
                 targets.add(target)
             for eid in src_mention.eids:

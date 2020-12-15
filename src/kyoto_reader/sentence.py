@@ -68,10 +68,6 @@ class Sentence:
         return self._mrph2dmid
 
     @property
-    def mrphs(self) -> List[Morpheme]:
-        return list(self._mrph2dmid.keys())
-
-    @property
     def surf(self) -> str:
         """表層表現"""
         return ''.join(bp.surf for bp in self.bps)

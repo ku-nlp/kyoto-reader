@@ -33,10 +33,16 @@ class Mention(BasePhrase):
             assert entity.eid in self.eids_unc
             return True
 
-    def __eq__(self, other: 'Mention'):
+    def __repr__(self) -> str:
+        return f'Mention(bp: {repr(super())}, eids: {repr(self.eids)}, eids_unc: {repr(self.eids_unc)})'
+
+    def __str__(self) -> str:
+        return self.core
+
+    def __eq__(self, other: 'Mention') -> bool:
         return self.dtid == other.dtid and self.sid == other.sid
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.dtid, self.sid))
 
 
@@ -67,17 +73,6 @@ class Entity:
     @property
     def is_special(self) -> bool:
         return self.exophor is not None
-
-    @property
-    def midasi(self) -> Optional[str]:
-        if self.is_special:
-            return self.exophor
-        if self.mentions:
-            return list(self.mentions)[0].midasi
-        elif self.mentions_unc:
-            return list(self.mentions_unc)[0].midasi
-        else:
-            return None
 
     @property
     def all_mentions(self) -> Set[Mention]:
@@ -116,3 +111,13 @@ class Entity:
         if mention in self.mentions_unc:
             self.mentions_unc.remove(mention)
             mention.eids_unc.remove(self.eid)
+
+    def __str__(self) -> Optional[str]:
+        if self.is_special:
+            return self.exophor
+        if self.mentions:
+            return list(self.mentions)[0].__str__()
+        elif self.mentions_unc:
+            return list(self.mentions_unc)[0].__str__()
+        else:
+            return str(None)

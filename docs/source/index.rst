@@ -102,10 +102,10 @@ Usage
    print('\n--- 述語項構造 ---')
    document: Document = reader.process_document('w201106-0000060050')
    for predicate in document.get_predicates():
-       print(f'述語: {predicate.midasi}')
+       print(f'述語: {predicate.core}')
        for case, arguments in document.get_arguments(predicate).items():
            print(f'  {case}格: ', end='')
-           print(', '.join(argument.midasi for argument in arguments))
+           print(', '.join(str(argument) for argument in arguments))
 
    print('\n--- ツリー形式 ---')
    document.draw_tree(sid='w201106-0000060050-1', coreference=False)
