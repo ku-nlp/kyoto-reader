@@ -1,5 +1,6 @@
 import logging
-from typing import List, Dict
+from collections import ChainMap
+from typing import List, Dict, Optional, Iterator
 
 from pyknp import BList, Morpheme
 
@@ -15,8 +16,7 @@ class Sentence:
     Attributes:
         blist (BList): KNPのBListオブジェクト
         doc_id (str): 文書ID
-        bps (List[BasePhrase]): 文に含まれる基本句のリスト
-        mrph2dmid (dict): 形態素IDと文書レベルの形態素IDを紐付ける辞書
+        bps (List[BasePhrase]): 含まれる基本句のリスト
     """
     def __init__(self,
                  knp_string: str,
@@ -37,15 +37,15 @@ class Sentence:
         self.doc_id: str = doc_id
 
         self.bps: List[BasePhrase] = []
-        self.mrph2dmid: Dict[Morpheme, int] = {}
         dtid = dtid_offset
         dmid = dmid_offset
-        for tag in self.tag_list():
-            for mrph in tag.mrph_list():
-                self.mrph2dmid[mrph] = dmid
-                dmid += 1
-            self.bps.append(BasePhrase(tag, dtid, self.sid, self.mrph2dmid))
+        for tag in self.blist.tag_list():
+            base_phrase = BasePhrase(tag, dmid, dtid, self.blist.sid, doc_id)
+            self.bps.append(base_phrase)
             dtid += 1
+            dmid += len(base_phrase)
+
+        self._mrph2dmid: Dict[Morpheme, int] = dict(ChainMap(*(bp.mrph2dmid for bp in self.bps)))
 
         for bp in self.bps:
             if bp.tag.parent_id >= 0:
@@ -59,14 +59,25 @@ class Sentence:
         return self.blist.sid
 
     @property
-    def midasi(self) -> str:
-        return self.__str__()
+    def dtids(self) -> List[int]:
+        return [bp.dtid for bp in self.bps]
+
+    @property
+    def mrph2dmid(self) -> Dict[Morpheme, int]:
+        """形態素とその文書レベルIDを紐付ける辞書"""
+        return self._mrph2dmid
+
+    @property
+    def mrphs(self) -> List[Morpheme]:
+        return list(self._mrph2dmid.keys())
+
+    @property
+    def surf(self) -> str:
+        """表層表現"""
+        return ''.join(bp.surf for bp in self.bps)
 
     def bnst_list(self):
         return self.blist.bnst_list()
-
-    def bp_list(self):
-        return self.bps
 
     def tag_list(self):
         return self.blist.tag_list()
@@ -74,18 +85,25 @@ class Sentence:
     def mrph_list(self):
         return self.blist.mrph_list()
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """含まれる基本句の数"""
         return len(self.bps)
 
-    def __getitem__(self, tid: int):
+    def __getitem__(self, tid: int) -> Optional[BasePhrase]:
         if 0 <= tid < len(self):
             return self.bps[tid]
         else:
             logger.error(f'base phrase: {tid} out of range')
             return None
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[BasePhrase]:
         return iter(self.bps)
 
-    def __str__(self):
-        return ''.join(str(bp) for bp in self.bps)
+    def __eq__(self, other: 'Sentence') -> bool:
+        return self.sid == other.sid
+
+    def __str__(self) -> str:
+        return self.surf
+
+    def __repr__(self) -> str:
+        return f'Sentence: ' + ' '.join(bp.surf for bp in self) + f' ({self.sid})'

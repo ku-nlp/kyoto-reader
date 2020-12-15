@@ -172,7 +172,6 @@ class Document:
         corefs (List[str]): 抽出の対象とする共参照関係(=など)
         extract_nes (bool): 固有表現をコーパスから抽出するかどうか
         sid2sentence (dict): 文IDと文を紐付ける辞書
-        mrph2dmid (dict): 形態素IDと文書レベルの形態素IDを紐付ける辞書
         mentions (dict): dtid を key とする mention の辞書
         entities (dict): entity id を key として entity オブジェクトが格納されている
         named_entities (list): 抽出した固有表現
@@ -202,13 +201,13 @@ class Document:
             if line.strip() == 'EOS':
                 sentence = Sentence(buff, dtid, dmid, doc_id)
                 if sentence.sid in self.sid2sentence:
-                    logger.warning(f'{sentence.sid}:duplicated sid found')
+                    logger.warning(f'{sentence.sid}: duplicated sid found')
                 self.sid2sentence[sentence.sid] = sentence
-                dtid += len(sentence.bps)
+                dtid += len(sentence)
                 dmid += len(sentence.mrph_list())
                 buff = ''
 
-        self.mrph2dmid = {mrph: dmid for sent in self.sentences for mrph, dmid in sent.mrph2dmid.items()}
+        self._mrph2dmid: Dict[Morpheme, int] = dict(ChainMap(*(sent.mrph2dmid for sent in self.sentences)))
 
         self._pas: Dict[int, Pas] = OrderedDict()
         self.mentions: Dict[int, Mention] = OrderedDict()
@@ -243,7 +242,7 @@ class Document:
                         sid = self.sentences[sid2idx[arg.sid] - arg.sdist].sid
                         arg_bp = self._get_bp(sid, arg.tid)
                         _ = self._create_mention(arg_bp)
-                        pas.add_argument(case, arg_bp, '', self.mrph2dmid)
+                        pas.add_argument(case, arg_bp, '')
             if pas.arguments:
                 self._pas[pas.dtid] = pas
 
@@ -279,7 +278,7 @@ class Document:
                             continue
                         # 項を発見したら同時に mention と entity を作成
                         _ = self._create_mention(arg_bp)
-                        pas.add_argument(rel.atype, arg_bp, rel.mode, self.mrph2dmid)
+                        pas.add_argument(rel.atype, arg_bp, rel.mode)
                     # exophora
                     else:
                         if rel.target == 'なし':
@@ -366,8 +365,8 @@ class Document:
             Mention: メンション
         """
         if bp.dtid not in self.mentions:
-            # new coreference cluster is made
-            mention = Mention(bp, self.mrph2dmid)
+            # make a new coreference cluster
+            mention = Mention(bp)
             self.mentions[bp.dtid] = mention
             entity = self._create_entity()
             entity.add_mention(mention, uncertain=False)
@@ -519,7 +518,7 @@ class Document:
                 if mrph_span is None:
                     logger.warning(f'{sentence.sid}:mrph span of "{midasi}" not found')
                     continue
-                ne = NamedEntity(category, midasi, sentence, mrph_span, self.mrph2dmid)
+                ne = NamedEntity(category, midasi, sentence, mrph_span, self._mrph2dmid)
                 self.named_entities.append(ne)
 
     @staticmethod
@@ -545,6 +544,16 @@ class Document:
             List[Sentence]
         """
         return list(self.sid2sentence.values())
+
+    @property
+    def mrph2dmid(self) -> Dict[Morpheme, int]:
+        """形態素とその文書レベルIDを紐付ける辞書"""
+        return self._mrph2dmid
+
+    @property
+    def surf(self) -> str:
+        """表層表現"""
+        return ''.join(sent.surf for sent in self.sentences)
 
     def bnst_list(self) -> List[Bunsetsu]:
         return [bnst for sentence in self.sentences for bnst in sentence.bnst_list()]
@@ -614,7 +623,7 @@ class Document:
                         for mention in entity.all_mentions:
                             if isinstance(arg, Argument) and mention.dtid == arg.dtid:
                                 continue
-                            pas.add_argument(case, mention, 'AND', self.mrph2dmid)
+                            pas.add_argument(case, mention, 'AND')
 
         return pas.arguments
 
@@ -661,7 +670,7 @@ class Document:
         """
         blist: BList = self[sid].blist
         with io.StringIO() as string:
-            blist.draw_tag_tree(fh=string)
+            blist.draw_tag_tree(fh=string, show_pos=False)
             tree_strings = string.getvalue().rstrip('\n').split('\n')
         assert len(tree_strings) == len(blist.tag_list())
         all_midasis = [m.midasi for m in self.mentions.values()]
@@ -738,5 +747,11 @@ class Document:
     def __iter__(self) -> Iterator[Sentence]:
         return iter(self.sid2sentence.values())
 
+    def __eq__(self, other: 'Document') -> bool:
+        return self.doc_id == other.doc_id
+
     def __str__(self):
-        return ''.join(sent.midasi for sent in self)
+        return self.surf
+
+    def __repr__(self) -> str:
+        return f'Document: ' + ' '.join(sent.surf for sent in self) + f' ({self.doc_id})'

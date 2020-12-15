@@ -3,8 +3,6 @@ from typing import List, Dict
 from collections import defaultdict
 from abc import abstractmethod
 
-from pyknp import Morpheme
-
 from .base_phrase import BasePhrase
 
 logger = logging.getLogger(__name__)
@@ -48,17 +46,15 @@ class Argument(BasePhrase, BaseArgument):
         bp (BasePhrase): 基本句
         dep_type (str): 係り受けタイプ ("overt", "dep", "intra", "inter", "exo")
         mode (str): モード
-        mrph2dmid (dict): 形態素とその文書レベルIDを紐付ける辞書
     """
 
     def __init__(self,
                  bp: BasePhrase,
                  dep_type: str,
                  mode: str,
-                 mrph2dmid: Dict[Morpheme, int]
                  ) -> None:
-        # initialize BasePhrase
-        super(Argument, self).__init__(bp.tag, bp.dtid, bp.sid, mrph2dmid, parent=bp.parent, children=bp.children)
+        super(Argument, self).__init__(bp.tag, bp.dmids[0], bp.dtid, bp.sid, bp.doc_id, parent=bp.parent,
+                                       children=bp.children)  # initialize BasePhrase
         super(BasePhrase, self).__init__(dep_type, mode)  # initialize BaseArgument
 
     # for test
@@ -70,7 +66,7 @@ class Argument(BasePhrase, BaseArgument):
         yield self.dep_type
         yield self.mode
 
-    def __str__(self):
+    def __repr__(self):
         return f'{self.midasi} (sid: {self.sid}, tid: {self.tid}, dtid: {self.dtid})'
 
     def __eq__(self, other: BaseArgument):
@@ -122,9 +118,9 @@ class Pas:
         self.predicate: Predicate = pred_bp
         self.arguments: Dict[str, List[BaseArgument]] = defaultdict(list)
 
-    def add_argument(self, case: str, bp: BasePhrase, mode: str, mrph2dmid: Dict[Morpheme, int]):
+    def add_argument(self, case: str, bp: BasePhrase, mode: str):
         dep_type = self._get_dep_type(self.predicate, bp, case)
-        argument = Argument(bp, dep_type, mode, mrph2dmid)
+        argument = Argument(bp, dep_type, mode)
         if argument not in self.arguments[case]:
             self.arguments[case].append(argument)
 

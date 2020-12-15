@@ -1,7 +1,5 @@
 import logging
-from typing import Dict, Optional, Set
-
-from pyknp import Morpheme
+from typing import Optional, Set
 
 from .base_phrase import BasePhrase
 
@@ -14,14 +12,13 @@ class Mention(BasePhrase):
 
     Args:
         bp (BasePhrase): mention の基本句オブジェクト
-        mrph2dmid (dict): 形態素とその文書レベルIDを紐付ける辞書
 
     Attributes:
         eids (set): entity ids
         eids_unc (set): uncertain entity ids
     """
-    def __init__(self, bp: BasePhrase, mrph2dmid: Dict[Morpheme, int]):
-        super().__init__(bp.tag, bp.dtid, bp.sid, mrph2dmid, parent=bp.parent, children=bp.children)
+    def __init__(self, bp: BasePhrase):
+        super().__init__(bp.tag, bp.dmids[0], bp.dtid, bp.sid, bp.doc_id, parent=bp.parent, children=bp.children)
         self.eids: Set[int] = set()
         self.eids_unc: Set[int] = set()
 
