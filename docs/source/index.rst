@@ -85,12 +85,10 @@ Usage
 
 .. code-block:: python
 
-   from pathlib import Path
-   from typing import List
-   from kyoto_reader import KyotoReader, Document, Predicate
+   from kyoto_reader import KyotoReader, Document
 
    # 文書集合を扱うオブジェクト
-   reader = KyotoReader(Path('w201106-0000060050.knp'),  # ファイルまたはディレクトリを Path オブジェクトで指定する
+   reader = KyotoReader('w201106-0000060050.knp',  # ファイルまたはディレクトリのパスを指定する
                         target_cases=['ガ', 'ヲ', 'ニ'],  # ガ,ヲ,ニ格のみを対象とする
                         target_corefs=['=', '=構', '=≒', '=構≒'],  # 共参照として扱う関係を列挙
                         extract_nes=True  # 固有表現もコーパスから抽出する
@@ -128,10 +126,10 @@ Usage
      ニ格:
 
    --- ツリー形式 ---
-   コインn┐
-    トスnをp─┐  不特定:人:ガ コイン:ヲ :ニ
-        ３n回s┤
-        行うv。*  不特定:人,著者,読者:ガ トス:ヲ :ニ
+   コイン┐
+     トスを─┐  ガ:不特定:人 ヲ:コイン
+         ３回┤
+         行う。  ガ:読者,不特定:人,著者 ヲ:トス
 
 
 CLI Interfaces

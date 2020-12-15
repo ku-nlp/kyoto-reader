@@ -509,6 +509,7 @@ class Document:
 
     def draw_tree(self,
                   sid: str = None,
+                  coreference: bool = True,
                   fh: Optional[TextIO] = None,
                   ) -> None:
         """sid で指定された文の述語項構造・共参照関係をツリー形式で fh に書き出す
@@ -516,22 +517,25 @@ class Document:
 
         Args:
            sid (str): 出力対象の文ID
+           coreference (bool): 共参照関係も出力するかどうか
            fh (Optional[TextIO]): 出力ストリーム
         """
         if sid is None:
             for _sid in self.sid2sentence.keys():
-                self._draw_sent_tree(_sid, fh)
+                self._draw_sent_tree(_sid, coreference, fh)
         else:
-            self._draw_sent_tree(sid, fh)
+            self._draw_sent_tree(sid, coreference, fh)
 
     def _draw_sent_tree(self,
                         sid: str,
+                        coreference: bool,
                         fh: Optional[TextIO] = None,
                         ) -> None:
         """sid で指定された文の述語項構造・共参照関係をツリー形式で fh に書き出す
 
         Args:
            sid (str): 出力対象の文ID
+           coreference (bool): 共参照関係も出力するかどうか
            fh (Optional[TextIO]): 出力ストリーム
         """
         blist: BList = self[sid].blist
@@ -556,7 +560,7 @@ class Document:
                 if targets:
                     tree_strings[bp.tid] += f'{case}:{",".join(targets)} '
             # coreference
-            if bp.tid in tid2mention:
+            if coreference and bp.tid in tid2mention:
                 src_mention = tid2mention[bp.tid]
                 tgt_mentions = [tgt for tgt in self.get_siblings(src_mention) if tgt.dtid < src_mention.dtid]
                 targets = set()

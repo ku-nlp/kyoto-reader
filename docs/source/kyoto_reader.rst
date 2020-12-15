@@ -11,6 +11,7 @@ Submodules
    kyoto_reader.cli
    kyoto_reader.constants
    kyoto_reader.coreference
+   kyoto_reader.document
    kyoto_reader.ne
    kyoto_reader.pas
    kyoto_reader.reader
