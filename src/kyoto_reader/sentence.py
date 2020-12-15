@@ -102,4 +102,4 @@ class Sentence:
         return self.surf
 
     def __repr__(self) -> str:
-        return f'Sentence: ' + ' '.join(bp.surf for bp in self) + f' ({self.sid})'
+        return f'Sentence(\'{self.surf}\', sid: {self.sid})'

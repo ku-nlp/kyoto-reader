@@ -136,4 +136,4 @@ class BasePhrase:
         return self.surf
 
     def __repr__(self) -> str:
-        return f'BasePhrase(mrphs: f{" ".join(m.midasi for m in self)}, dtid: {self.dtid}, sid: {self.sid}'
+        return f'BasePhrase(mrphs: f{" ".join(m.midasi for m in self)}, dtid: {self.dtid}, sid: {self.sid})'

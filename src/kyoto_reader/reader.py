@@ -143,3 +143,6 @@ class KyotoReader:
 
     def __len__(self):
         return len(self.doc_ids)
+
+    def __getitem__(self, doc_id: str) -> Document:
+        return self.process_document(doc_id)

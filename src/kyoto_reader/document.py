@@ -9,11 +9,11 @@ import jaconv
 from pyknp import BList, Bunsetsu, Tag, Morpheme, Rel
 
 from .sentence import Sentence
+from .base_phrase import BasePhrase
 from .pas import Pas, Predicate, BaseArgument, Argument, SpecialArgument
 from .coreference import Mention, Entity
 from .ne import NamedEntity
 from .constants import ALL_CASES, ALL_EXOPHORS, ALL_COREFS, NE_CATEGORIES
-from .base_phrase import BasePhrase
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
