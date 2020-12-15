@@ -540,11 +540,11 @@ class Document:
             tree_strings = string.getvalue().rstrip('\n').split('\n')
         assert len(tree_strings) == len(blist.tag_list())
         all_targets = [str(m) for m in self.mentions.values()]
-        # predicate-argument structure
-        for predicate in filter(lambda p: p.sid == sid, self.get_predicates()):
-            idx = predicate.tid
-            tree_strings[idx] += '  '
-            arguments = self.get_arguments(predicate)
+        tid2mention = {mention.tid: mention for mention in self.mentions.values() if mention.sid == sid}
+        for bp in self[sid].bps:
+            tree_strings[bp.tid] += '  '
+            # predicate-argument structure
+            arguments = self.get_arguments(bp)
             for case in self.cases:
                 args = arguments[case]
                 targets = set()
@@ -554,22 +554,23 @@ class Document:
                         target += str(arg.dtid)
                     targets.add(target)
                 if targets:
-                    tree_strings[idx] += f'{",".join(targets)}:{case} '
-        # coreference
-        for src_mention in filter(lambda m: m.sid == sid, self.mentions.values()):
-            tgt_mentions = [tgt for tgt in self.get_siblings(src_mention) if tgt.dtid < src_mention.dtid]
-            targets = set()
-            for tgt_mention in tgt_mentions:
-                target = str(tgt_mention)
-                if all_targets.count(target) > 1:
-                    target += str(tgt_mention.dtid)
-                targets.add(target)
-            for eid in src_mention.eids:
-                entity = self.entities[eid]
-                if entity.is_special:
-                    targets.add(entity.exophor)
-            if targets:
-                tree_strings[src_mention.tid] += f'  ＝:{",".join(targets)}'
+                    tree_strings[bp.tid] += f'{case}:{",".join(targets)} '
+            # coreference
+            if bp.tid in tid2mention:
+                src_mention = tid2mention[bp.tid]
+                tgt_mentions = [tgt for tgt in self.get_siblings(src_mention) if tgt.dtid < src_mention.dtid]
+                targets = set()
+                for tgt_mention in tgt_mentions:
+                    target = str(tgt_mention)
+                    if all_targets.count(target) > 1:
+                        target += str(tgt_mention.dtid)
+                    targets.add(target)
+                for eid in src_mention.eids:
+                    entity = self.entities[eid]
+                    if entity.is_special:
+                        targets.add(entity.exophor)
+                if targets:
+                    tree_strings[src_mention.tid] += f'＝:{",".join(targets)}'
 
         print('\n'.join(tree_strings), file=fh)
 
