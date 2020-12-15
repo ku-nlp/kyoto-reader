@@ -8,6 +8,7 @@ Submodules
    :maxdepth: 4
 
    kyoto_reader.base_phrase
+   kyoto_reader.cli
    kyoto_reader.constants
    kyoto_reader.coreference
    kyoto_reader.ne

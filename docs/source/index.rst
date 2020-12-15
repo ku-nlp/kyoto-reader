@@ -35,13 +35,13 @@ Requirements
 Install kyoto-reader
 ========================
 
-.. code-block:: none
+.. code-block:: bash
 
     $ pip install kyoto-reader
 
 or
 
-.. code-block:: none
+.. code-block:: bash
 
     $ git clone https://github.com/ku-nlp/kyoto-reader
     $ cd kyoto-reader
@@ -53,8 +53,8 @@ A Brief Explanation of KWDLC/KyotoCorpus
 
 | KWDLC と KyotoCorpus はどちらも日本語の文書に対して形態素や構文情報の他、述語項構造や共参照関係が人手で付与されたコーパス。
 | KWDLC はウェブから抽出した3文を1文書として約5,000文書に対してアノテーションされている。
-| KyotoCorpus は毎日新聞の記事を対象に、形態素・構文情報については 40,000 文、述語項構造・共参照関係についてはそのうちの 10,000 文にアノテーションされている。
-| なお、述語項構造・共参照関係のアノテーションは `<rel>` タグによって行われている。
+| KyotoCorpus は毎日新聞の記事を対象に、形態素・構文情報については 40,000 文に、述語項構造・共参照関係についてはそのうちの 10,000 文にアノテーションされている。
+| なお、述語項構造・共参照関係のアノテーションは ``<rel>`` タグによって行われている。
 
 KWDLC の例:
 
@@ -81,7 +81,7 @@ KWDLC の例:
 Usage
 ========================
 
-上記の例のデータが入ったファイル w201106-0000060050.knp を読み込む場合
+上記の例のデータが入ったファイル ``w201106-0000060050.knp`` を読み込む場合
 
 .. code-block:: python
 
@@ -96,8 +96,8 @@ Usage
                         extract_nes=True  # 固有表現もコーパスから抽出する
                         )
    print('読み込んだ文書:')
-   for did, source in reader.did2source.items():
-       print(f'  {source} (文書ID: {did})')
+   for doc_id in reader.doc_ids:
+       print(f'  文書ID: {doc_id}')
 
    print('\n--- 述語項構造 ---')
    document: Document = reader.process_document('w201106-0000060050')
@@ -115,7 +115,7 @@ Usage
 .. code-block:: none
 
    読み込んだ文書:
-     w201106-0000060050.knp (文書ID: w201106-0000060050)
+     文書ID: w201106-0000060050
 
    --- 述語項構造 ---
    述語: トス
@@ -134,30 +134,48 @@ Usage
         行うv。*  不特定:人,著者,読者:ガ トス:ヲ :ニ
 
 
-Corpus Preprocessor
+CLI Interfaces
 ========================
 
-- Makefile を使用してコーパスに追加の素性を付与することができる (KNP と JumanDIC が必要)。
+``kyoto`` コマンドを使用することで、CLI から一部機能を使用することができる。
 
-  以下のコマンドを実行することでコーパスのディレクトリに Makefile が生成される。
+- KNP ファイルの内容をツリー形式で表示 (ディレクトリを指定した場合、含まれる全てのファイルを表示)
 
 .. code-block:: bash
 
-   $ configure --corpus-dir </path/to/downloaded/knp/directory> --data-dir </path/to/output/directory> --juman-dic-dir </path/to/JumanDIC/directory>
+   $ kyoto show /path/to/knp/file.knp
+
+- 指定されたディレクトリに含まれる文書ID を列挙
+
+.. code-block:: bash
+
+   $ kyoto list /path/to/knp/directory
+
+
+Corpus Preprocessor
+========================
+
+Makefile を使用してコーパスに追加の素性を付与することができる (KNP と JumanDIC が必要)。
+
+- 以下のコマンドを実行することでコーパスのディレクトリに Makefile が生成される。
+
+.. code-block:: bash
+
+   $ kyoto configure --corpus-dir /path/to/downloaded/knp/directory --data-dir /path/to/output/directory --juman-dic-dir /path/to/JumanDIC/directory
    created Makefile at /path/to/output/directory
 
-この Makefile を実行することで knp/ ディレクトリに素性の付与されたファイルが出力される
+- 生成された Makefile を実行することで、コーパスが1文書1ファイルに分割され、 ``knp/`` ディレクトリに素性の付与されたファイルが出力される。
 
 .. code-block:: bash
 
    $ cd /path/to/output/directory
    $ make -i
 
-- idsplit コマンドを使用してコーパスを train/dev/test ファイルに分割することができる．
+``idsplit`` コマンドを使用してコーパスを train/dev/test ファイルに分割することができる。
 
 .. code-block:: bash
 
-   $ idsplit --corpus-dir </path/to/knp/dir> --output-dir </path/to/output/dir> --train </path/to/train/id/file> --dev </path/to/dev/id/file> --test </path/to/test/id/file>
+   $ kyoto idsplit --corpus-dir /path/to/knp/dir --output-dir /path/to/output/dir --train /path/to/train/id/file --dev /path/to/dev/id/file --test /path/to/test/id/file
 
 Documents
 ============
@@ -165,17 +183,18 @@ Documents
    :maxdepth: 2
    :caption: Contents:
 
+   kyoto_reader
    kyoto_reader.reader
+   kyoto_reader.sentence
    kyoto_reader.base_phrase
    kyoto_reader.pas
    kyoto_reader.coreference
    kyoto_reader.ne
-   kyoto_reader.constants
 
 
 Author/Contact
 ========================
-京都大学 黒橋・河原研究室 (contact@nlp.ist.i.kyoto-u.ac.jp)
+京都大学 黒橋・河原研究室 (contact **at** nlp.ist.i.kyoto-u.ac.jp)
 
 - Nobuhiro Ueda
 
