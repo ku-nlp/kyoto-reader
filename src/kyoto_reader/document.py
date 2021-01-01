@@ -625,4 +625,4 @@ class Document:
         return self.surf
 
     def __repr__(self) -> str:
-        return f'Document: ' + ' '.join(sent.surf for sent in self) + f' ({self.doc_id})'
+        return f'Document([' + ', '.join(sent.surf for sent in self) + f'], did={self.doc_id})'
