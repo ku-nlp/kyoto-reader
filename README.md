@@ -7,22 +7,14 @@
 ## Requirements
 
 - Python 3.7.2+
-- [pyknp](https://github.com/ku-nlp/pyknp) 0.4.1
-- [KNP](http://nlp.ist.i.kyoto-u.ac.jp/index.php?KNP) 4.2 (optional)
+- [pyknp](https://github.com/ku-nlp/pyknp) 0.4.5+
+- [KNP](http://nlp.ist.i.kyoto-u.ac.jp/index.php?KNP) 4.2+ (optional)
 - [JumanDIC](https://github.com/ku-nlp/JumanDIC) (optional)
 
 ## Installation
 
 ```zsh
 $ pip install kyoto-reader
-```
-
-or
-
-```zsh
-$ git clone https://github.com/ku-nlp/kyoto-reader
-$ cd kyoto-reader
-$ python setup.py install [--prefix=path]
 ```
 
 ## Documents
