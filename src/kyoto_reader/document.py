@@ -37,10 +37,10 @@ class Document:
         cases (List[str]): 抽出の対象とする格
         corefs (List[str]): 抽出の対象とする共参照関係(=など)
         extract_nes (bool): 固有表現をコーパスから抽出するかどうか
-        sid2sentence (dict): 文IDと文を紐付ける辞書
-        mentions (dict): dtid を key とする mention の辞書
-        entities (dict): entity id を key として entity オブジェクトが格納されている
-        named_entities (list): 抽出した固有表現
+        sid2sentence (Dict[str, Sentence]): 文IDと文を紐付ける辞書
+        mentions (Dict[int, Mention]): dtid を key とする mention の辞書
+        entities (Dict[int, Entity]): entity id を key として entity オブジェクトが格納されている
+        named_entities (List[NamedEntity]): 抽出した固有表現
     """
     def __init__(self,
                  knp_string: str,
@@ -76,8 +76,8 @@ class Document:
         self._mrph2dmid: Dict[Morpheme, int] = dict(ChainMap(*(sent.mrph2dmid for sent in self.sentences)))
 
         self._pas: Dict[int, Pas] = OrderedDict()
-        self.mentions: Dict[int, Mention] = OrderedDict()
-        self.entities: Dict[int, Entity] = OrderedDict()
+        self.mentions: Dict[int, Mention] = {}
+        self.entities: Dict[int, Entity] = {}
         if use_pas_tag:
             self._analyze_pas()
         else:
@@ -265,7 +265,7 @@ class Document:
                 if entities:
                     assert len(entities) == 1  # singleton entity が1つしかないことを保証
                     return entities[0]
-        eids: List[int] = [e.eid for e in self.entities.values()]
+        eids: Set[int] = {e.eid for e in self.entities.values()}
         if eid in eids:
             eid_ = eid
             eid: int = max(eids) + 1
