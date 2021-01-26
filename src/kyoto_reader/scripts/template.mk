@@ -31,9 +31,9 @@ $(ORIG_KNP_DONE): $(CORPUS_KNPS)
 .PHONY: add-feats
 add-feats: $(OUT_KNPS)
 
-# knp -read-feature
+# knp -dpnd
 $(OUT_KNPS): $(OUT_KNP_DIR)/%.knp: $(ADD_SEMS_KNP_DIR)/%.knp
-	mkdir -p $(dir $@) && cat $< | $(KNP) -tab -read-feature > $@ || rm -f $@
+	mkdir -p $(dir $@) && cat $< | $(KNP) -tab -dpnd > $@ || rm -f $@
 
 # add_sems.py
 $(ADD_SEMS_KNPS): $(ADD_SEMS_KNP_DIR)/%.knp: $(ORIG_KNP_DIR)/%.knp
