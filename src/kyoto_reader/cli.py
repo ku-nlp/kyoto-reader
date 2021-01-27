@@ -2,6 +2,7 @@ import sys
 import shutil
 import argparse
 from pathlib import Path
+from typing import Dict
 
 from kyoto_reader import KyotoReader
 
@@ -42,27 +43,28 @@ def idsplit(args: argparse.Namespace):
         print('Specify either --dev or --valid', file=sys.stderr)
         exit(1)
 
-    def write(id_file: Path, out_dir: Path, in_dir: Path):
+    def write(id_file: Path, out_dir: Path, name2path: Dict[str: Path]):
         out_dir.mkdir(exist_ok=True)
         with id_file.open() as f:
             for line in f:
                 doc_id = line.strip()
-                files = list(in_dir.glob(f'**/{doc_id}.knp'))
-                if not files:
-                    print(f'Cannot copy \'{doc_id}.knp\': No such file in {in_dir}', file=sys.stderr)
+                file_name = f'{doc_id}.knp'
+                if file_name not in name2path:
+                    print(f'Cannot copy \'{file_name}\': No such file in {corpus_dir}', file=sys.stderr)
                     continue
-                file = files[0]
-                shutil.copy(str(file), str(out_dir))
-                print(f'copy {file} to {out_dir}')
+                print(f'copy {name2path[file_name]} to {out_dir}')
+                shutil.copy(str(name2path[file_name]), str(out_dir))
+
+    knp_files = {p.name: p for p in corpus_dir.glob('**/*.knp')}
 
     if args.train:
-        write(Path(args.train), output_dir / 'train', corpus_dir)
+        write(Path(args.train), output_dir / 'train', knp_files)
     if args.dev:
-        write(Path(args.dev), output_dir / 'dev', corpus_dir)
+        write(Path(args.dev), output_dir / 'dev', knp_files)
     if args.valid:
-        write(Path(args.valid), output_dir / 'valid', corpus_dir)
+        write(Path(args.valid), output_dir / 'valid', knp_files)
     if args.test:
-        write(Path(args.test), output_dir / 'test', corpus_dir)
+        write(Path(args.test), output_dir / 'test', knp_files)
 
 
 def main():
