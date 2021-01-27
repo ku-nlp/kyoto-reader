@@ -43,7 +43,7 @@ def idsplit(args: argparse.Namespace):
         print('Specify either --dev or --valid', file=sys.stderr)
         exit(1)
 
-    def write(id_file: Path, out_dir: Path, name2path: Dict[str: Path]):
+    def write(id_file: Path, out_dir: Path, name2path: Dict[str, Path]):
         out_dir.mkdir(exist_ok=True)
         with id_file.open() as f:
             for line in f:
