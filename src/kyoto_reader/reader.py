@@ -3,8 +3,10 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Optional, Union
 from collections import ChainMap
+from itertools import repeat
 
 from joblib import Parallel, delayed
+from multiprocessing import Pool
 
 from .document import Document
 from .constants import ALL_CASES, ALL_COREFS, SID_PTN, SID_PTN_KWDLC
@@ -130,12 +132,38 @@ class KyotoReader:
             logger.error(f'unknown document id: {doc_id}')
             return None
 
-    def process_documents(self, doc_ids: List[str]) -> List[Optional[Document]]:
+    def process_documents(self, doc_ids: List[str], backend: Optional[str] = "multiprocessing") -> List[Optional[Document]]:
+        """Process documents following given doc_ids.
+        joblib or multiprocessing are used for multiprocessing backend.
+
+        Args:
+            doc_ids (List[str]): doc_id list to process
+            backend (Optional[str]): joblib or multiprocessing
+        """
+        if backend == "multiprocessing":
+            return self.process_documents_pool(doc_ids)
+        elif backend == "joblib":
+            return self.process_documents_joblib(doc_ids)
+        else:
+            raise NotImplementedError
+
+    def process_documents_joblib(self, doc_ids: List[str]) -> List[Optional[Document]]:
         parallel = Parallel(n_jobs=self.n_jobs)
         return parallel([delayed(KyotoReader._unwrap_self)(self, x) for x in doc_ids])
 
-    def process_all_documents(self) -> List[Document]:
-        return self.process_documents(self.doc_ids)
+    def process_documents_pool(self, doc_ids: List[str]) -> List[Optional[Document]]:
+        self_iter = repeat(self)
+        self_doc_ids_pair_iter = zip(self_iter, doc_ids)
+        with Pool() as pool:
+            return list(pool.starmap(KyotoReader._unwrap_self, self_doc_ids_pair_iter))
+
+    def process_all_documents(self, backend: Optional[str] = "multiprocessing") -> List[Optional[Document]]:
+        """Process all documents using joblib or multiprocessing.
+
+        Args:
+            backend (Optional[str]): joblib or multiprocessing
+        """
+        return self.process_documents(self.doc_ids, backend)
 
     @staticmethod
     def _unwrap_self(self_, *arg, **kwarg):
