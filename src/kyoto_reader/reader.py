@@ -145,12 +145,12 @@ class KyotoReader:
             backend (Optional[str]): 'multiprocessing', 'joblib', or None (default: 'multiprocessing')
         """
         if backend == 'multiprocessing':
-            parallel = Parallel(n_jobs=self.n_jobs)
-            return parallel([delayed(KyotoReader._unwrap_self)(self, x) for x in doc_ids])
-        elif backend == 'joblib':
             self_doc_ids_pair_iter = zip(repeat(self), doc_ids)
             with Pool() as pool:
                 return list(pool.starmap(KyotoReader._unwrap_self, self_doc_ids_pair_iter))
+        elif backend == 'joblib':
+            parallel = Parallel(n_jobs=self.n_jobs)
+            return parallel([delayed(KyotoReader._unwrap_self)(self, x) for x in doc_ids])
         elif backend is None:
             return [self.process_document(doc_id) for doc_id in doc_ids]
         else:
