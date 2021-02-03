@@ -58,9 +58,11 @@ class KyotoReader:
             file_paths = [source]
         self.did2pkls: Dict[str, Path] = {path.stem: path for path in file_paths if path.suffix == pickle_ext}
         self.n_jobs = n_jobs
-        parallel = Parallel(n_jobs=n_jobs)
-        rets = parallel(delayed(KyotoReader.read_knp)(path, did_from_sid)
-                        for path in file_paths if path.suffix == knp_ext)
+
+        args_iter = ((path, did_from_sid) for path in file_paths if path.suffix == knp_ext)
+        with Pool(n_jobs if n_jobs >= 0 else None) as pool:
+            rets: List[Dict[str, str]] = list(pool.starmap(KyotoReader.read_knp, args_iter))
+
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
         self.doc_ids: List[str] = sorted(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
 
@@ -146,7 +148,7 @@ class KyotoReader:
         """
         if backend == 'multiprocessing':
             self_doc_ids_pair_iter = zip(repeat(self), doc_ids)
-            with Pool() as pool:
+            with Pool(self.n_jobs if self.n_jobs >= 0 else None) as pool:
                 return list(pool.starmap(KyotoReader._unwrap_self, self_doc_ids_pair_iter))
         elif backend == 'joblib':
             parallel = Parallel(n_jobs=self.n_jobs)
