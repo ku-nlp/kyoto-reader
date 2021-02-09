@@ -3,32 +3,49 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-===================================================
-kyoto-reader: A processor for KWDLC and KyotoCorpus
-===================================================
+=========================================================================
+kyoto-reader: A processor for KWDLC, KyotoCorpus, and AnnotatedFKCCorpus
+=========================================================================
 
 
 About
 ========================
 
-京都大学ウェブ文書リードコーパス (KWDLC_) や京都大学テキストコーパス (KyotoCorpus_) をパースし、
-述語項構造や共参照関係を扱うためのインターフェースを提供します。
+京都大学が公開している述語項構造や共参照関係が付与されたコーパスをパースし、Pythonから扱うためのインターフェースを提供します。
 このツールは pyknp のラッパーであるため、形態素情報や係り受け関係なども扱うことが可能です。
 
-.. _KWDLC: https://github.com/ku-nlp/KWDLC
-.. _KyotoCorpus: https://github.com/ku-nlp/KyotoCorpus
+.. list-table:: 利用可能なコーパス一覧
+    :widths: 30 20 10
+    :header-rows: 1
 
+    * - Name
+      - Domain
+      - Size
+    * - 京都大学ウェブ文書リードコーパス_ (KWDLC)
+      - ウェブテキスト
+      - 16,038文
+    * - 京都大学テキストコーパス_ (KyotoCorpus)
+      - 新聞記事・社説
+      - 15,872文
+    * - 不満調査データセットタグ付きコーパス_ (AnnotatedFKCCorpus)
+      - 不満に関する投稿
+      - 1,282文
+
+.. _京都大学ウェブ文書リードコーパス: https://github.com/ku-nlp/KWDLC
+.. _京都大学テキストコーパス: https://github.com/ku-nlp/KyotoCorpus
+.. _不満調査データセットタグ付きコーパス: https://github.com/ku-nlp/AnnotatedFKCCorpus
 
 Requirements
 ========================
 
 - Python
     -  Verified Versions: 3.7, 3.8, 3.9
-- `pyknp 0.4.5`_
-- KNP (optional)
+- `pyknp 0.4.6+`_
+- KNP_ (optional)
 - JumanDIC_ (optional)
 
-.. _`pyknp 0.4.5`: https://github.com/ku-nlp/pyknp
+.. _`pyknp 0.4.6+`: https://github.com/ku-nlp/pyknp
+.. _KNP: https://github.com/ku-nlp/knp
 .. _JumanDIC: https://github.com/ku-nlp/JumanDIC
 
 
@@ -48,12 +65,13 @@ or
     $ python setup.py install [--prefix=path]
 
 
-A Brief Explanation of KWDLC/KyotoCorpus
+A Brief Explanation of KWDLC and other corpora
 ================================================
 
-| KWDLC と KyotoCorpus はどちらも日本語の文書に対して形態素や構文情報の他、述語項構造や共参照関係が人手で付与されたコーパス。
+| KWDLC, KyotoCorpus, AnnotatedFKCCorpus はいずれも日本語の文書に対して形態素や構文情報の他、述語項構造や共参照関係が人手で付与されたコーパス。
 | KWDLC はウェブから抽出した3文を1文書として約5,000文書に対してアノテーションされている。
-| KyotoCorpus は毎日新聞の記事を対象に、形態素・構文情報については 40,000 文に、述語項構造・共参照関係についてはそのうちの 10,000 文にアノテーションされている。
+| KyotoCorpus は毎日新聞の記事を対象に、形態素・構文情報については 40,000 文に、述語項構造・共参照関係についてはそのうちの約10,000 文にアノテーションされている。
+| AnnotatedFKCCorpus は一般の人々から集められた不満テキスト約1,300文に対してアノテーションを行ったコーパスである。
 | なお、述語項構造・共参照関係のアノテーションは ``<rel>`` タグによって行われている。
 
 KWDLC の例:
@@ -191,6 +209,7 @@ Documents
 
    kyoto_reader
    kyoto_reader.reader
+   kyoto_reader.document
    kyoto_reader.sentence
    kyoto_reader.base_phrase
    kyoto_reader.pas
