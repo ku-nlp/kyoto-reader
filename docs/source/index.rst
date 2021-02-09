@@ -135,45 +135,53 @@ Usage
 CLI Interfaces
 ========================
 
-``kyoto`` コマンドを使用することで、CLI から一部機能を使用することができる。
+``kyoto`` コマンドを使用することで、コーパスの内容を表示したりコーパスを加工したりできる。
 
-- KNP ファイルの内容をツリー形式で表示 (ディレクトリを指定した場合、含まれる全てのファイルを表示)
+Browsing files
+------------------------
+
+- ``kyoto show``: KNP ファイルの内容をツリー形式で表示 (ディレクトリを指定した場合、含まれる全てのファイルを表示)
 
 .. code-block:: bash
 
    $ kyoto show /path/to/knp/file.knp
 
-- 指定されたディレクトリに含まれる文書ID を列挙
+- ``kyoto list``: 指定されたディレクトリに含まれる文書ID を列挙
 
 .. code-block:: bash
 
    $ kyoto list /path/to/knp/directory
 
+Processing Corpus
+------------------------
 
-Corpus Preprocessor
-========================
+コーパスを解析し、追加の素性を付与 (KNP と JumanDIC が必要)
 
-Makefile を使用してコーパスに追加の素性を付与することができる (KNP と JumanDIC が必要)。
+- ``kyoto configure``: コーパスのディレクトリに素性付与のための Makefile を生成
 
-- 以下のコマンドを実行することでコーパスのディレクトリに Makefile が生成される。
+  - ``make`` を実行することで、コーパスが1文書1ファイルに分割され、 ``knp/`` ディレクトリに素性の付与されたファイルが出力される。
 
 .. code-block:: bash
 
    $ kyoto configure --corpus-dir /path/to/downloaded/knp/directory --data-dir /path/to/output/directory --juman-dic-dir /path/to/JumanDIC/directory
    created Makefile at /path/to/output/directory
-
-- 生成された Makefile を実行することで、コーパスが1文書1ファイルに分割され、 ``knp/`` ディレクトリに素性の付与されたファイルが出力される。
-
-.. code-block:: bash
-
    $ cd /path/to/output/directory
-   $ make -i
+   $ make -j <num-parallel>
 
-``idsplit`` コマンドを使用してコーパスを train/dev/test ファイルに分割することができる。
+- ``kyoto idsplit``: コーパスを train/dev/test ファイルに分割
 
 .. code-block:: bash
 
    $ kyoto idsplit --corpus-dir /path/to/knp/dir --output-dir /path/to/output/dir --train /path/to/train/id/file --dev /path/to/dev/id/file --test /path/to/test/id/file
+
+Zsh Completions
+------------------------
+
+``<virtualenv-path>/share/zsh/site-functions`` を ``FPATH`` に追加することで ``kyoto`` コマンドの補完が可能 (zsh 限定)
+
+.. code-block:: bash
+
+   $ echo 'export FPATH=<virtualenv-path>/share/zsh/site-functions:$FPATH' >> ~/.zshrc
 
 Documents
 ============
