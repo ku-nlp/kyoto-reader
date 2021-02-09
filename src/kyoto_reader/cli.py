@@ -82,9 +82,9 @@ def main():
     parser_conf.add_argument('--makefile-dir', default=None, type=str,
                              help='path to directory where Makefile will be created (default: same as --data-dir)')
     parser_conf.add_argument('--makefile-name', default='Makefile', type=str,
-                             help='name of makefile to be created')
+                             help='name of makefile to be created (default: Makefile)')
     parser_conf.add_argument('--knp', default=shutil.which('knp'), type=str,
-                             help='path to knp')
+                             help='path to knp (default: follow PATH environment variable)')
     parser_conf.set_defaults(handler=configure)
 
     # subcommand: show
