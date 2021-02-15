@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import List, Dict, Optional, Union, Callable, Iterable
 from collections import ChainMap
 from itertools import repeat
+from multiprocessing import Pool
 
 from joblib import Parallel, delayed
-from multiprocessing import Pool
 
 from .document import Document
 from .constants import ALL_CASES, ALL_COREFS, SID_PTN, SID_PTN_KWDLC
