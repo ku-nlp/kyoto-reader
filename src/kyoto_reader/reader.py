@@ -59,7 +59,7 @@ class KyotoReader:
             logger.info(f'got file path, this file is treated as a source knp file')
             file_paths = [source]
         self.did2pkls: Dict[str, Path] = {path.stem: path for path in file_paths if path.suffix == pickle_ext}
-        self.mp_backend: Optional[str] = mp_backend
+        self.mp_backend: Optional[str] = mp_backend if n_jobs != 0 else None
         self.n_jobs: int = n_jobs
 
         args_iter = ((path, did_from_sid) for path in file_paths if path.suffix == knp_ext)
