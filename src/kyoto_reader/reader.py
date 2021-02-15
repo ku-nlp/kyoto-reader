@@ -1,7 +1,7 @@
 import _pickle as cPickle
 import logging
 from pathlib import Path
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Union, Callable, Iterable
 from collections import ChainMap
 from itertools import repeat
 
@@ -28,6 +28,7 @@ class KyotoReader:
         pickle_ext (str): Document を pickle 形式で読む場合の拡張子 (default: pkl)
         use_pas_tag (bool): <rel>タグからではなく、<述語項構造:>タグから PAS を読むかどうか (default: False)
         recursive (bool): source がディレクトリの場合、文書ファイルを再帰的に探索するかどうか (default: False)
+        mp_backend (Optional[str]): 'multiprocessing', 'joblib', or None (default: 'multiprocessing')
         n_jobs (int): 文書を読み込む処理の並列数 (default: -1(=コア数))
         did_from_sid (bool): 文書IDを文書中のS-IDから決定する (default: True)
     """
@@ -42,6 +43,7 @@ class KyotoReader:
                  knp_ext: str = '.knp',
                  pickle_ext: str = '.pkl',
                  recursive: bool = False,
+                 mp_backend: Optional[str] = 'multiprocessing',
                  n_jobs: int = -1,
                  did_from_sid: bool = True,
                  ) -> None:
@@ -57,11 +59,11 @@ class KyotoReader:
             logger.info(f'got file path, this file is treated as a source knp file')
             file_paths = [source]
         self.did2pkls: Dict[str, Path] = {path.stem: path for path in file_paths if path.suffix == pickle_ext}
-        self.n_jobs = n_jobs
+        self.mp_backend: Optional[str] = mp_backend
+        self.n_jobs: int = n_jobs
 
         args_iter = ((path, did_from_sid) for path in file_paths if path.suffix == knp_ext)
-        with Pool(n_jobs if n_jobs >= 0 else None) as pool:
-            rets: List[Dict[str, str]] = list(pool.starmap(KyotoReader.read_knp, args_iter))
+        rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, mp_backend, n_jobs)
 
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
         self.doc_ids: List[str] = sorted(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
@@ -83,9 +85,7 @@ class KyotoReader:
             for line in f:
                 if line.startswith('# S-ID:') and did_from_sid:
                     sid_string = line[7:].strip().split()[0]
-                    match = SID_PTN_KWDLC.match(sid_string)
-                    if match is None:
-                        match = SID_PTN.match(sid_string)
+                    match = SID_PTN_KWDLC.match(sid_string) or SID_PTN.match(sid_string)
                     if match is None:
                         raise ValueError(f'unsupported S-ID format: {sid_string} in {path}')
                     if did != match.group('did') or sid == match.group('sid'):
@@ -136,41 +136,42 @@ class KyotoReader:
 
     def process_documents(self,
                           doc_ids: List[str],
-                          backend: Optional[str] = 'multiprocessing'
                           ) -> List[Optional[Document]]:
         """Process documents following given doc_ids.
-        Joblib or multiprocessing are used for multiprocessing backend.
-        If None is specified, do not perform multiprocessing.
 
         Args:
             doc_ids (List[str]): doc_id list to process
-            backend (Optional[str]): 'multiprocessing', 'joblib', or None (default: 'multiprocessing')
         """
-        if backend == 'multiprocessing':
-            self_doc_ids_pair_iter = zip(repeat(self), doc_ids)
-            with Pool(self.n_jobs if self.n_jobs >= 0 else None) as pool:
-                return list(pool.starmap(KyotoReader._unwrap_self, self_doc_ids_pair_iter))
-        elif backend == 'joblib':
-            parallel = Parallel(n_jobs=self.n_jobs)
-            return parallel([delayed(KyotoReader._unwrap_self)(self, x) for x in doc_ids])
-        elif backend is None:
-            return [self.process_document(doc_id) for doc_id in doc_ids]
-        else:
-            raise NotImplementedError
+        args_iter = zip(repeat(self), doc_ids)
+        return self._mp_wrapper(KyotoReader.process_document, args_iter, self.mp_backend, self.n_jobs)
 
-    def process_all_documents(self, backend: Optional[str] = 'multiprocessing') -> List[Optional[Document]]:
-        """Process all documents that KyotoReader has loaded.
-        Joblib or multiprocessing are used for multiprocessing backend.
-        If None is specified, do not perform multiprocessing.
-
-        Args:
-            backend (Optional[str]): 'multiprocessing', 'joblib', or None (default: 'multiprocessing')
-        """
-        return self.process_documents(self.doc_ids, backend)
+    def process_all_documents(self) -> List[Optional[Document]]:
+        """Process all documents that KyotoReader has loaded."""
+        return self.process_documents(self.doc_ids)
 
     @staticmethod
-    def _unwrap_self(self_, *arg, **kwarg):
-        return KyotoReader.process_document(self_, *arg, **kwarg)
+    def _mp_wrapper(func: Callable, args: Iterable[tuple], backend: Optional[str], n_jobs: int) -> list:
+        """Call func with given args in multiprocess.
+        Joblib or multiprocessing are used for multiprocessing backend.
+        If None is specified as backend, do not perform multiprocessing.
+
+        Args:
+            func (Callable): function to be called
+            args (List[tuple]): list of arguments for the function
+            backend (Optional[str]): 'multiprocessing', 'joblib', or None (default: 'multiprocessing')
+        Returns:
+            list: the output of func for each arguments
+        """
+        if backend == 'multiprocessing':
+            with Pool(n_jobs if n_jobs >= 0 else None) as pool:
+                return list(pool.starmap(func, args))
+        elif backend == 'joblib':
+            parallel = Parallel(n_jobs=n_jobs)
+            return parallel([delayed(func)(*arg) for arg in args])
+        elif backend is None:
+            return [func(*arg) for arg in args]
+        else:
+            raise NotImplementedError
 
     def __len__(self):
         return len(self.doc_ids)
