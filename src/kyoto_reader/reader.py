@@ -63,7 +63,7 @@ class KyotoReader:
         self.n_jobs: int = n_jobs
 
         args_iter = ((path, did_from_sid) for path in file_paths if path.suffix == knp_ext)
-        rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, mp_backend, n_jobs)
+        rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
 
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
         self.doc_ids: List[str] = sorted(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
