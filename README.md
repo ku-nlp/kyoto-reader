@@ -1,5 +1,8 @@
 # kyoto-reader: A processor for KWDLC, KyotoCorpus, and AnnotatedFKCCorpus
 
+![License](http://img.shields.io/badge/license-MIT-blue.svg)
+[![Python 3.7,3.8,3.9](https://github.com/ku-nlp/kyoto-reader/actions/workflows/pythonpackage.yml/badge.svg)](https://github.com/ku-nlp/kyoto-reader/actions/workflows/pythonpackage.yml)
+
 以下のコーパスから形態素・係り受け関係・述語項構造・共参照関係・固有表現情報を抽出し、Pythonから扱うためのインターフェースを提供します。 
 
 - 京都大学ウェブ文書リードコーパス ([KWDLC](https://github.com/ku-nlp/KWDLC))
