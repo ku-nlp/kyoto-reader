@@ -2,6 +2,7 @@
 
 ![License](http://img.shields.io/badge/license-MIT-blue.svg)
 [![Python 3.7,3.8,3.9](https://github.com/ku-nlp/kyoto-reader/actions/workflows/pythonpackage.yml/badge.svg)](https://github.com/ku-nlp/kyoto-reader/actions/workflows/pythonpackage.yml)
+[![Python Versions](https://img.shields.io/pypi/pyversions/kyoto_reader.svg)](https://pypi.org/project/kyoto-reader/)
 
 以下のコーパスから形態素・係り受け関係・述語項構造・共参照関係・固有表現情報を抽出し、Pythonから扱うためのインターフェースを提供します。 
 
@@ -29,5 +30,4 @@ $ pip install kyoto-reader
 ## Authors/Contact
 
 京都大学 黒橋・村脇研究室 (contact **at** nlp.ist.i.kyoto-u.ac.jp)
-
 - Nobuhiro Ueda <ueda **at** nlp.ist.i.kyoto-u.ac.jp>
