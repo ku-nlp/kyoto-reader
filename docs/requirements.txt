@@ -10,7 +10,7 @@ Jinja2==2.11.3
 MarkupSafe==1.1.1
 jaconv==0.2.4
 packaging==20.1
-Pygments==2.5.2
+Pygments==2.7.4
 -e git+https://github.com/ku-nlp/pyknp.git@master#egg=pyknp
 pyparsing==2.4.6
 pytz==2019.3
