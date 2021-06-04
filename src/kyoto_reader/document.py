@@ -1,47 +1,48 @@
-import io
-import copy
 import _pickle as cPickle
+import copy
+import io
 import logging
-from typing import List, Dict, Set, Optional, Iterator, TextIO
 from collections import OrderedDict, ChainMap, defaultdict
+from typing import List, Dict, Set, Optional, Iterator, TextIO
 
 import jaconv
 from pyknp import BList, Bunsetsu, Tag, Morpheme, Rel
 
-from .sentence import Sentence
 from .base_phrase import BasePhrase
-from .pas import Pas, Predicate, BaseArgument, Argument, SpecialArgument
+from .constants import ALL_CASES, ALL_EXOPHORS, ALL_COREFS, NE_CATEGORIES
 from .coreference import Mention, Entity
 from .ne import NamedEntity
-from .constants import ALL_CASES, ALL_EXOPHORS, ALL_COREFS, NE_CATEGORIES
+from .pas import Pas, Predicate, BaseArgument, Argument, SpecialArgument
+from .sentence import Sentence
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
 class Document:
-    """ KWDLC(または Kyoto Corpus)の1文書を扱うクラス
+    """A class to represent a document of KWDLC, KyotoCorpus, or AnnotatedFKCCorpus.
 
     Args:
-        knp_string (str): 文書ファイルの内容(knp形式)
-        doc_id (str): 文書ID
-        cases (List[str]): 抽出の対象とする格
-        corefs (List[str]): 抽出の対象とする共参照関係(=など)
-        relax_cases (bool): ガ≒格などをガ格として扱うか
-        extract_nes (bool): 固有表現をコーパスから抽出するかどうか
-        use_pas_tag (bool): <rel>タグからではなく、<述語項構造:>タグから PAS を読むかどうか
+        knp_string (str): KNP format string of the document.
+        doc_id (str): A document ID.
+        cases (List[str]): Cases to extract.
+        corefs (List[str]): Coreference relations to extract.
+        relax_cases (bool): Whether to consider relations with "≒" as those without "≒" (e.g. ガ≒格 -> ガ格).
+        extract_nes (bool): Whether to extract named entities.
+        use_pas_tag (bool): Whether to read predicate-argument structures from <述語項構造: > tags, not <rel> tags.
 
     Attributes:
-        knp_string (str): 文書ファイルの内容(knp形式)
-        doc_id (str): 文書ID(ファイル名から拡張子を除いたもの)
-        cases (List[str]): 抽出の対象とする格
-        corefs (List[str]): 抽出の対象とする共参照関係(=など)
-        extract_nes (bool): 固有表現をコーパスから抽出するかどうか
-        sid2sentence (Dict[str, Sentence]): 文IDと文を紐付ける辞書
-        mentions (Dict[int, Mention]): dtid を key とする mention の辞書
-        entities (Dict[int, Entity]): entity id を key として entity オブジェクトが格納されている
-        named_entities (List[NamedEntity]): 抽出した固有表現
+        knp_string (str): KNP format string of the document.
+        doc_id (str): A document ID.
+        cases (List[str]): Cases to extract.
+        corefs (List[str]): Coreference relations to extract.
+        extract_nes (bool): Whether to extract named entities.
+        sid2sentence (Dict[str, Sentence]): A mapping from a sentence ID to the corresponding sentence.
+        mentions (Dict[int, Mention]): A mapping from a document-wide tag ID to the corresponding mention.
+        entities (Dict[int, Entity]): A mapping from a entity ID to the corresponding entity.
+        named_entities (List[NamedEntity]): Extracted named entities.
     """
+
     def __init__(self,
                  knp_string: str,
                  doc_id: str,
@@ -88,7 +89,7 @@ class Document:
             self._extract_nes()
 
     def _analyze_pas(self) -> None:
-        """extract predicate argument structure from <述語項構造:> tag in knp string"""
+        """Extract predicate-argument structures represented in <述語項構造: > tags."""
         sid2idx = {sid: idx for idx, sid in enumerate(self.sid2sentence.keys())}
         for bp in self.bp_list():
             if bp.tag.pas is None:
@@ -113,7 +114,7 @@ class Document:
                 self._pas[pas.dtid] = pas
 
     def _analyze_rel(self) -> None:
-        """extract predicate argument structure and coreference relation from <rel> tag in knp string"""
+        """Extract predicate-argument structures and coreference relations represented in <rel> tags"""
         for bp in self.bp_list():
             rels = []
             for rel in self._extract_rel_tags(bp.tag):
@@ -142,7 +143,7 @@ class Document:
                         arg_bp = self._get_bp(rel.sid, rel.tid)
                         if arg_bp is None:
                             continue
-                        # 項を発見したら同時に mention と entity を作成
+                        # create a mention and an entity when an argument is found
                         _ = self._create_mention(arg_bp)
                         pas.add_argument(rel.atype, arg_bp, rel.mode)
                     # exophora
@@ -164,10 +165,10 @@ class Document:
                     if rel.mode in ('', 'AND'):  # ignore "OR" and "?"
                         self._add_corefs(bp, rel)
 
-    # to extract rels with mode: '?', rewrite initializer of pyknp Futures class
+    # to extract rels with mode: '?', rewrite initializer of pyknp Features class
     @staticmethod
     def _extract_rel_tags(tag: Tag) -> List[Rel]:
-        """parse tag.fstring to extract <rel> tags"""
+        """Parse tag.fstring to extract <rel> tags."""
         splitter = "><"
         rels = []
         spec = tag.fstring
@@ -190,6 +191,7 @@ class Document:
                     source_bp: BasePhrase,
                     rel: Rel,
                     ) -> None:
+        """Add a coreference relation."""
         if rel.sid is not None:
             target_bp = self._get_bp(rel.sid, rel.tid)
             if target_bp is None:
@@ -220,15 +222,16 @@ class Document:
                 self._merge_entities(source_mention, None, source_entity, target_entity, uncertain)
 
     def _create_mention(self, bp: BasePhrase) -> Mention:
-        """メンションを作成
-        bp がまだ mention として登録されていなければ新しく entity と共に作成．
-        登録されていればその mention を返す．
+        """Create a mention from the corresponding base phrase.
+
+        If the base phrase has not registered as a mention yet, create a new mention as well as an entity.
+        Otherwise, return the registered mention.
 
         Args:
-            bp (BasePhrase): 基本句
+            bp (BasePhrase): A base phrase corresponding to the mention to be created.
 
         Returns:
-            Mention: メンション
+            Mention: A mention.
         """
         if bp.dtid not in self.mentions:
             # make a new coreference cluster
@@ -244,7 +247,7 @@ class Document:
                        exophor: Optional[str] = None,
                        eid: Optional[int] = None,
                        ) -> Entity:
-        """エンティティを作成
+        """Create an entity.
 
         exophor が singleton entity だった場合を除き、新しく Entity のインスタンスを作成して返す
         singleton entity とは、「著者」や「不特定:人１」などの必ず一つしか存在しないような entity
@@ -256,7 +259,7 @@ class Document:
             eid (Optional[int]): エンティティID(省略推奨)
 
         Returns:
-             Entity: エンティティ
+             Entity: An entity to be created.
         """
         if exophor:
             if exophor not in ('不特定:人', '不特定:物', '不特定:状況'):  # exophor が singleton entity だった時
@@ -283,7 +286,7 @@ class Document:
                         te: Entity,
                         uncertain: bool,
                         ) -> None:
-        """2つのエンティティをマージする
+        """Merge two entities.
 
         source_mention と se, target_mention と te の間には mention が張られているが、
         source と target 間には張られていないので、add_mention する
@@ -404,7 +407,7 @@ class Document:
 
     @property
     def sentences(self) -> List['Sentence']:
-        """文を構成する全文節列オブジェクト
+        """List of sentences in this document.
 
         Returns:
             List[Sentence]
@@ -413,32 +416,36 @@ class Document:
 
     @property
     def mrph2dmid(self) -> Dict[Morpheme, int]:
-        """形態素とその文書レベルIDを紐付ける辞書"""
+        """A mapping from morpheme to its document-wide ID."""
         return self._mrph2dmid
 
     @property
     def surf(self) -> str:
-        """表層表現"""
+        """A surface expression of this document."""
         return ''.join(sent.surf for sent in self.sentences)
 
     def bnst_list(self) -> List[Bunsetsu]:
+        """Return list of Bunsetsu object in pyknp."""
         return [bnst for sentence in self.sentences for bnst in sentence.bnst_list()]
 
     def bp_list(self) -> List[BasePhrase]:
+        """Return list of base phrases."""
         return [bp for sentence in self.sentences for bp in sentence.bps]
 
     def tag_list(self) -> List[Tag]:
+        """Return list of Tag object in pyknp."""
         return [tag for sentence in self.sentences for tag in sentence.tag_list()]
 
     def mrph_list(self) -> List[Morpheme]:
+        """Return list of Morpheme object in pyknp."""
         return [mrph for sentence in self.sentences for mrph in sentence.mrph_list()]
 
     def get_entities(self, bp: BasePhrase, include_uncertain: bool = False) -> List[Entity]:
-        """基本句が参照するエンティティを返す
+        """Return list of entities that the specified mention refers to. The mention is given as a type of BasePhrase.
 
         Args:
-            bp (BasePhrase): 基本句
-            include_uncertain (bool): 参照しているか不確かなエンティティも返すかどうか
+            bp (BasePhrase): A base phrase corresponds to the mention.
+            include_uncertain (bool): Whether to return entities that has uncertain relation with the mention.
         """
         if bp.dtid not in self.mentions:
             return []
@@ -447,9 +454,11 @@ class Document:
         return [self.entities[eid] for eid in eids]
 
     def pas_list(self) -> List[Pas]:
+        """Return list of predicate-argument structures."""
         return list(self._pas.values())
 
     def get_predicates(self) -> List[Predicate]:
+        """Return list of predicates."""
         return [pas.predicate for pas in self._pas.values()]
 
     def get_arguments(self,
@@ -457,15 +466,16 @@ class Document:
                       relax: bool = False,
                       include_optional: bool = False,
                       ) -> Dict[str, List[BaseArgument]]:
-        """述語 predicate が持つ全ての項を返す
+        """Return all the arguments that the given predicate has.
 
         Args:
-            predicate (Predicate): 述語
-            relax (bool): coreference chain によってより多くの項を返すかどうか
-            include_optional (bool): 「すぐに」などの修飾的な項も返すかどうか
+            predicate (Predicate): A predicate.
+            relax (bool): If True, return arguments that have a coreference relation with the arguments the predicate \
+            has.
+            include_optional (bool): If True, return adverbial arguments such as "すぐに" as well.
 
         Returns:
-            Dict[str, List[BaseArgument]]: 格を key とする述語の項の辞書
+            Dict[str, List[BaseArgument]]: A mapping from a case to arguments.
         """
         if predicate.dtid not in self._pas:
             return defaultdict(list)
@@ -494,7 +504,15 @@ class Document:
         return pas.arguments
 
     def get_siblings(self, mention: Mention, relax: bool = False) -> Set[Mention]:
-        """mention と共参照関係にある他の全ての mention を返す"""
+        """Return all the mentions that have coreference chains with the specified mention.
+
+        Args:
+            mention (Mention): A mention.
+            relax (bool): If True, return coreferent mentions as well.
+
+        Returns:
+            Set[Mention]: A set of mentions.
+        """
         mentions = set()
         for eid in mention.eids:
             entity = self.entities[eid]
@@ -508,17 +526,18 @@ class Document:
         return mentions
 
     def draw_tree(self,
-                  sid: str = None,
+                  sid: Optional[str] = None,
                   coreference: bool = True,
                   fh: Optional[TextIO] = None,
                   ) -> None:
-        """sid で指定された文の述語項構造・共参照関係をツリー形式で fh に書き出す
-        sid が指定されなければ文書に含まれる全ての文を出力
+        """Write out the PAS and coreference relations in the specified sentence in a tree format.
+
+        If sid is not specified, write out trees in all the sentences in this document.
 
         Args:
-           sid (str): 出力対象の文ID
-           coreference (bool): 共参照関係も出力するかどうか
-           fh (Optional[TextIO]): 出力ストリーム
+           sid (str, optional): A sentence ID of the target sentence.
+           coreference (bool): If True, write out coreference relations as well.
+           fh (TextIO, optional): The output stream.
         """
         if sid is None:
             for _sid in self.sid2sentence.keys():
@@ -531,12 +550,12 @@ class Document:
                         coreference: bool,
                         fh: Optional[TextIO] = None,
                         ) -> None:
-        """sid で指定された文の述語項構造・共参照関係をツリー形式で fh に書き出す
+        """Write out the PAS and coreference relations in the specified sentence in a tree format.
 
         Args:
-           sid (str): 出力対象の文ID
-           coreference (bool): 共参照関係も出力するかどうか
-           fh (Optional[TextIO]): 出力ストリーム
+           sid (str): A sentence ID of the target sentence.
+           coreference (bool): If True, write out coreference relations as well.
+           fh (Optional[TextIO]): The output stream.
         """
         blist: BList = self[sid].blist
         with io.StringIO() as string:
@@ -579,7 +598,7 @@ class Document:
         print('\n'.join(tree_strings), file=fh)
 
     def stat(self) -> dict:
-        """calculate document statistics"""
+        """Calculate various kinds of statistics of this document."""
         ret = dict()
         ret['num_sents'] = len(self)
         ret['num_tags'] = len(self.tag_list())

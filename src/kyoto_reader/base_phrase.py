@@ -55,7 +55,7 @@ class BasePhrase:
         self.children: List['BasePhrase'] = children if children is not None else []
 
     def _get_content_word(self) -> Morpheme:
-        """Returns the first morpheme that is a content word if any. Otherwise returns the first morpheme"""
+        """Return the first morpheme that is a content word if any. Otherwise, return the first morpheme"""
         for mrph in self.tag.mrph_list():
             if '<内容語>' in mrph.fstring:
                 return mrph
@@ -94,7 +94,7 @@ class BasePhrase:
 
     @property
     def mrph2dmid(self) -> Dict[Morpheme, int]:
-        """A map from morpheme to its document-wide ID."""
+        """A mapping from morpheme to its document-wide ID."""
         return self._mrph2dmid
 
     @property
