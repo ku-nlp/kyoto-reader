@@ -16,7 +16,7 @@ logger.setLevel(logging.WARNING)
 
 
 class KyotoReader:
-    """ KWDLC(または Kyoto Corpus)の文書集合を扱うクラス
+    """A class to manage a set of corpus documents.
 
     Args:
         source (Union[Path, str]): 対象の文書へのパス。ディレクトリが指定された場合、その中の全てのファイルを対象とする
@@ -78,6 +78,15 @@ class KyotoReader:
 
     @staticmethod
     def read_knp(path: Path, did_from_sid: bool) -> Dict[str, str]:
+        """Read KNP format file that is located at the specified path. The file can contain multiple documents.
+
+        Args:
+            path (Path): A path to a KNP format file.
+            did_from_sid (bool): If True, determine the document ID from the sentence ID in the document.
+
+        Returns:
+            Dict[str, str]: A mapping from a document ID to a KNP format string.
+        """
         did2knps = {}
         with path.open() as f:
             buff = ''
@@ -108,6 +117,7 @@ class KyotoReader:
                      all_: list,
                      type_: str,
                      ) -> list:
+        """Return a list of known relations."""
         if input_ is None:
             return all_
         target = []
@@ -119,6 +129,11 @@ class KyotoReader:
         return target
 
     def process_document(self, doc_id: str) -> Optional[Document]:
+        """Process one document following the given document ID.
+
+        Args:
+            doc_id (str): An ID of a document to process.
+        """
         if doc_id in self.did2pkls:
             with self.did2pkls[doc_id].open(mode='rb') as f:
                 return cPickle.load(f)
@@ -137,10 +152,10 @@ class KyotoReader:
     def process_documents(self,
                           doc_ids: List[str],
                           ) -> List[Optional[Document]]:
-        """Process documents following given doc_ids.
+        """Process multiple documents following the given document IDs.
 
         Args:
-            doc_ids (List[str]): doc_id list to process
+            doc_ids (List[str]): IDs of documents to process.
         """
         args_iter = zip(repeat(self), doc_ids)
         return self._mp_wrapper(KyotoReader.process_document, args_iter, self.mp_backend, self.n_jobs)
@@ -156,11 +171,12 @@ class KyotoReader:
         If None is specified as backend, do not perform multiprocessing.
 
         Args:
-            func (Callable): function to be called
-            args (List[tuple]): list of arguments for the function
+            func (Callable): A function to be called.
+            args (List[tuple]): List of arguments for the function.
             backend (Optional[str]): 'multiprocessing', 'joblib', or None (default: 'multiprocessing')
+
         Returns:
-            list: the output of func for each arguments
+            list: The output of func for each arguments.
         """
         if backend == 'multiprocessing':
             with Pool(n_jobs if n_jobs >= 0 else None) as pool:

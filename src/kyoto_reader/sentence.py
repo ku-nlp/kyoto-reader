@@ -11,12 +11,12 @@ logger.setLevel(logging.WARNING)
 
 
 class Sentence:
-    """ KWDLC(または Kyoto Corpus)の1文書を扱うクラス
+    """A class to represent a single sentence.
 
     Attributes:
-        blist (BList): KNPのBListオブジェクト
-        doc_id (str): 文書ID
-        bps (List[BasePhrase]): 含まれる基本句のリスト
+        blist (BList): BList object of pyknp.
+        doc_id (str): The document ID of this sentence.
+        bps (List[BasePhrase]): Base phrases in this sentence.
     """
     def __init__(self,
                  knp_string: str,
@@ -27,10 +27,10 @@ class Sentence:
         """
 
         Args:
-            knp_string(str): 1文についてのKNPのtab出力
-            dtid_offset (int): 文書中でこの文が始まるまでの文書レベル基本句ID
-            dmid_offset (int): 文書中でこの文が始まるまでの文書レベル形態素ID
-            doc_id(str): 文書ID
+            knp_string(str): KNP format string of this sentence.
+            dtid_offset (int): The document-wide tag ID of the previous base phrase.
+            dmid_offset (int): The document-wide morpheme ID of the previous morpheme.
+            doc_id(str): The document ID of this sentence.
         """
 
         self.blist = BList(knp_string)
@@ -55,34 +55,38 @@ class Sentence:
 
     @property
     def sid(self) -> str:
-        """文ID"""
+        """A sentence ID."""
         return self.blist.sid
 
     @property
     def dtids(self) -> List[int]:
+        """A document-wide tag ID."""
         return [bp.dtid for bp in self.bps]
 
     @property
     def mrph2dmid(self) -> Dict[Morpheme, int]:
-        """形態素とその文書レベルIDを紐付ける辞書"""
+        """A mapping from morpheme to its document-wide ID."""
         return self._mrph2dmid
 
     @property
     def surf(self) -> str:
-        """表層表現"""
+        """A surface expression"""
         return ''.join(bp.surf for bp in self.bps)
 
     def bnst_list(self):
+        """Return list of Bunsetsu object in pyknp."""
         return self.blist.bnst_list()
 
     def tag_list(self):
+        """Return list of Tag object in pyknp."""
         return self.blist.tag_list()
 
     def mrph_list(self):
+        """Return list of Morpheme object in pyknp."""
         return self.blist.mrph_list()
 
     def __len__(self) -> int:
-        """含まれる基本句の数"""
+        """Number of base phrases in this sentence"""
         return len(self.bps)
 
     def __getitem__(self, tid: int) -> Optional[BasePhrase]:

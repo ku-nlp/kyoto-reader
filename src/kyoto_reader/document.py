@@ -293,11 +293,12 @@ class Document:
         se と te が同一のエンティティであり、exophor も同じか片方が None ならば te の方を削除する
 
         Args:
-            source_mention (Mention): 参照元メンション
-            target_mention (Mention?): 参照先メンション
-            se (Entity): 参照元エンティティ
-            te (Entity): 参照先エンティティ
-            uncertain (bool): source_mention と target_mention のアノテーションが ≒ かどうか
+            source_mention (Mention): A source mention.
+            target_mention (Mention, optional): A target mention.
+            se (Entity): A source entity.
+            te (Entity): A target entity.
+            uncertain (bool): Whether the relation between source and target mentions is uncertain (i.e., annotated \
+            with "≒").
         """
         uncertain_tgt = (target_mention is not None) and target_mention.is_uncertain_to(te)
         uncertain_src = source_mention.is_uncertain_to(se)
@@ -333,15 +334,14 @@ class Document:
                        eid: int,
                        sid: str
                        ) -> None:
-        """entity を削除する
+        """Delete an entity.
 
-        対象の entity を entities から削除すると共に、
-        その entity を参照する全ての mention からも削除
-        eid に欠番ができる
+        Remove the target entity from all the mentions of the entity as well as from self.entities.
+        Note that entity IDs can have a missing number.
 
         Args:
-            eid (int): 削除対象の entity の EID
-            sid (int): 削除された時解析されていた文の文ID
+            eid (int): The entity ID of the entity to be deleted.
+            sid (int): The sentence ID of the sentence being analyzed when the entity is deleted.
         """
         if eid not in self.entities:
             return
@@ -355,14 +355,14 @@ class Document:
                 sid: str,
                 tid: int,
                 ) -> Optional[BasePhrase]:
-        """文IDと基本句IDから基本句を得る
+        """Get a base phrase from sentence ID and tag ID.
 
         Args:
-            sid (str): 文ID
-            tid (int): 基本句ID
+            sid (str): A sentence ID.
+            tid (int): A tag ID.
 
         Returns:
-            Optional[BasePhrase]: 対応する基本句
+            Optional[BasePhrase]: The base phrase that has sentence ID of sid and tag ID of tid.
         """
         sentence = self[sid]
         if not (0 <= tid < len(sentence.bps)):
@@ -371,7 +371,7 @@ class Document:
         return sentence.bps[tid]
 
     def _extract_nes(self) -> None:
-        """KNP の tag を参照して文書中から固有表現を抽出する"""
+        """Extract named entities referring tag objects."""
         for sentence in self.sentences:
             tag_list = sentence.tag_list()
             # tag.features = {'NE': 'LOCATION:ダーマ神殿'}
