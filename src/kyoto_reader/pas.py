@@ -9,12 +9,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-# 述語を表すクラス
+# a class to represent a predicate
 Predicate = BasePhrase
 
 
 class BaseArgument:
-    """全ての項の基底クラス"""
+    """A base class for all kinds of arguments"""
     def __init__(self, dep_type: str, mode: str):
         self.dep_type: str = dep_type
         self.mode: str = mode
@@ -107,14 +107,14 @@ class SpecialArgument(BaseArgument):
 
 
 class Pas:
-    """ 述語項構造を保持するオブジェクト
+    """A class to represent a predicate-argument structure (PAS).
 
     Args:
         pred_bp (BasePhrase): 述語となる基本句
 
     Attributes:
         predicate (Predicate): 述語
-        arguments (dict): 格と項
+        arguments (Dict[str, List[BaseArgument]]): 格と項
     """
 
     def __init__(self, pred_bp: BasePhrase):
@@ -158,10 +158,12 @@ class Pas:
 
     @property
     def dtid(self) -> int:
+        """A document-wide tag ID."""
         return self.predicate.dtid
 
     @property
     def sid(self) -> str:
+        """A sentence ID"""
         return self.predicate.sid
 
     @property
