@@ -11,12 +11,12 @@ class BasePhrase:
     """文中に出現する基本句を表すクラス
 
     Attributes:
-        tag (Tag): KNPの基本句オブジェクト
-        sid (str): 自身を含む文の文ID
-        dtid (int): 文書レベル基本句ID
-        content_dmid (int): 自身に含まれる内容語形態素の文書レベルの形態素ID
-        parent (Optional[BasePhrase]): 係り先
-        children (List[BasePhrase]): 係り元
+        tag (Tag): Tag object in pyknp.
+        sid (str): Sentence ID.
+        dtid (int): Document-wide tag ID.
+        content_dmid (int): Document-wide morpheme ID of the content word in the base phrase.
+        parent (Optional[BasePhrase]): Dependency parent.
+        children (List[BasePhrase]): Dependency children.
     """
     def __init__(self,
                  tag: Tag,
@@ -30,13 +30,13 @@ class BasePhrase:
         """
 
         Args:
-            tag (Tag): KNPの基本句オブジェクト
-            dmid_offset (int): 文書中でこの基本句が始まるまでの文書レベル形態素ID
-            dtid (int): 文書レベル基本句ID
-            sid (str): 自身を含む文の文ID
-            doc_id (str): 自身を含む文書の文書ID
-            parent (Optional[BasePhrase]): 係り先
-            children (List[BasePhrase]): 係り元
+            tag (Tag): Tag object in pyknp.
+            dmid_offset (int): Document-wide morpheme ID of the previous morpheme.
+            dtid (int): Document-wide tag ID.
+            sid (str): Sentence ID.
+            doc_id (str): Document ID.
+            parent (Optional[BasePhrase]): Dependency parent.
+            children (List[BasePhrase]): Dependency children.
         """
         self.tag: Tag = tag
         self.dtid: int = dtid
@@ -55,7 +55,7 @@ class BasePhrase:
         self.children: List['BasePhrase'] = children if children is not None else []
 
     def _get_content_word(self) -> Morpheme:
-        """自身の中の内容語形態素を返す．ない場合は先頭の形態素を返す"""
+        """Returns the first morpheme that is a content word if any. Otherwise returns the first morpheme"""
         for mrph in self.tag.mrph_list():
             if '<内容語>' in mrph.fstring:
                 return mrph
@@ -65,16 +65,17 @@ class BasePhrase:
 
     @property
     def dmid(self) -> int:
+        """Document-wide morpheme ID."""
         return self.content_dmid
 
     @property
     def tid(self) -> int:
-        """基本句ID"""
+        """Tag ID in pyknp."""
         return self.tag.tag_id
 
     @property
     def core(self) -> str:
-        """助詞等を除いた中心的表現"""
+        """A core expression without ancillary words."""
         mrph_list = self.tag.mrph_list()
         sidx = 0
         for i, mrph in enumerate(mrph_list):
@@ -93,30 +94,30 @@ class BasePhrase:
 
     @property
     def mrph2dmid(self) -> Dict[Morpheme, int]:
-        """形態素とその文書レベルIDを紐付ける辞書"""
+        """A map from morpheme to its document-wide ID."""
         return self._mrph2dmid
 
     @property
     def mrphs(self) -> List[Morpheme]:
-        """形態素列"""
+        """A list of morphemes."""
         return list(self._mrph2dmid.keys())
 
     @property
     def dmids(self) -> List[int]:
-        """形態素ID列"""
+        """A list of document-wide morpheme IDs."""
         return list(self._mrph2dmid.values())
 
     @property
     def surf(self) -> str:
-        """表層表現"""
+        """A surface expression."""
         return self.tag.midasi
 
     def mrph_list(self) -> List[Morpheme]:
-        """形態素列"""
+        """A list of morphemes"""
         return self.mrphs
 
     def __len__(self) -> int:
-        """含まれる基本句の数"""
+        """Number of morphemes in the base phrase"""
         return len(self._mrph2dmid)
 
     def __getitem__(self, mid: int) -> Optional[Morpheme]:

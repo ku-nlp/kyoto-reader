@@ -8,6 +8,7 @@ from kyoto_reader import KyotoReader
 
 
 def configure(args: argparse.Namespace):
+    """Create Makefile to preprocess corpus documents."""
     scripts_dir = Path(__file__).parent / 'scripts'
     makefile_path = Path(args.makefile_dir or args.data_dir) / args.makefile_name
     with scripts_dir.joinpath('template.mk').open() as f:
@@ -23,18 +24,20 @@ def configure(args: argparse.Namespace):
 
 
 def show(args: argparse.Namespace):
+    """Show the specified document in a tree format."""
     reader = KyotoReader(args.path, target_cases=args.cases)
     for document in reader.process_all_documents():
         document.draw_tree()
 
 
 def list_(args: argparse.Namespace):
+    """List document IDs which specified path contains."""
     reader = KyotoReader(args.path)
     print('\n'.join(reader.doc_ids))
 
 
 def idsplit(args: argparse.Namespace):
-    """id ファイルを参照してコーパスファイルを train と valid (dev) と test ディレクトリにコピーする"""
+    """Copy files in a corpus to train, valid (dev), and test directory referring to ID files."""
 
     corpus_dir = Path(args.corpus_dir)
     output_dir = Path(args.output_dir)
@@ -68,6 +71,7 @@ def idsplit(args: argparse.Namespace):
 
 
 def main():
+    """Entry point of CLI commands."""
     parser = argparse.ArgumentParser(prog='kyoto', description='provide commands to process kyoto corpus')
     subparsers = parser.add_subparsers()
 
