@@ -10,7 +10,6 @@ imagesize==1.2.0
 jaconv==0.3
 Jinja2==3.0.1
 joblib==1.0.1
--e git+git@github.com:ku-nlp/kyoto-reader.git@b7183b3e4acd373a01089121715f106f18be5802#egg=kyoto_reader
 livereload==2.6.3
 MarkupSafe==2.0.1
 packaging==20.9
