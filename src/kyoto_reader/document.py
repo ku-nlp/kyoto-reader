@@ -3,7 +3,7 @@ import copy
 import io
 import logging
 from collections import OrderedDict, ChainMap, defaultdict
-from typing import List, Dict, Set, Optional, Iterator, TextIO, Sequence
+from typing import List, Dict, Set, Optional, Iterator, TextIO, Collection
 
 import jaconv
 from pyknp import BList, Bunsetsu, Tag, Morpheme, Rel
@@ -25,8 +25,8 @@ class Document:
     Args:
         knp_string (str): KNP format string of the document.
         doc_id (str): A document ID.
-        cases (Sequence[str]): Cases to extract.
-        corefs (Sequence[str]): Coreference relations to extract.
+        cases (Collection[str]): Cases to extract.
+        corefs (Collection[str]): Coreference relations to extract.
         relax_cases (bool): Whether to consider relations with "≒" as those without "≒" (e.g. ガ≒格 -> ガ格).
         extract_nes (bool): Whether to extract named entities.
         use_pas_tag (bool): Whether to read predicate-argument structures from <述語項構造: > tags, not <rel> tags.
@@ -34,8 +34,8 @@ class Document:
     Attributes:
         knp_string (str): KNP format string of the document.
         doc_id (str): A document ID.
-        cases (Sequence[str]): Cases to extract.
-        corefs (Sequence[str]): Coreference relations to extract.
+        cases (Collection[str]): Cases to extract.
+        corefs (Collection[str]): Coreference relations to extract.
         extract_nes (bool): Whether to extract named entities.
         sid2sentence (Dict[str, Sentence]): A mapping from a sentence ID to the corresponding sentence.
         mentions (Dict[int, Mention]): A mapping from a document-wide tag ID to the corresponding mention.
@@ -46,16 +46,16 @@ class Document:
     def __init__(self,
                  knp_string: str,
                  doc_id: str,
-                 cases: Sequence[str],
-                 corefs: Sequence[str],
+                 cases: Collection[str],
+                 corefs: Collection[str],
                  relax_cases: bool,
                  extract_nes: bool,
                  use_pas_tag: bool,
                  ) -> None:
         self.knp_string: str = knp_string
         self.doc_id: str = doc_id
-        self.cases: Sequence[str] = cases
-        self.corefs: Sequence[str] = corefs
+        self.cases: Collection[str] = cases
+        self.corefs: Collection[str] = corefs
         self.relax_cases: bool = relax_cases
         self.extract_nes: bool = extract_nes
         self.use_pas_tag: bool = use_pas_tag

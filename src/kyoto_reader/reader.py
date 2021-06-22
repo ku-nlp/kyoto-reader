@@ -1,7 +1,7 @@
 import _pickle as cPickle
 import logging
 from pathlib import Path
-from typing import List, Dict, Optional, Union, Callable, Iterable
+from typing import List, Dict, Optional, Union, Callable, Iterable, Collection, Any
 from collections import ChainMap
 from itertools import repeat
 from multiprocessing import Pool
@@ -20,8 +20,8 @@ class KyotoReader:
 
     Args:
         source (Union[Path, str]): 対象の文書へのパス。ディレクトリが指定された場合、その中の全てのファイルを対象とする
-        target_cases (Optional[List[str]]): 抽出の対象とする格。(default: 全ての格)
-        target_corefs (Optional[List[str]]): 抽出の対象とする共参照関係(=など)。(default: 全ての関係)
+        target_cases (Optional[Collection[str]]): 抽出の対象とする格。(default: 全ての格)
+        target_corefs (Optional[Collection[str]]): 抽出の対象とする共参照関係(=など)。(default: 全ての関係)
         extract_nes (bool): 固有表現をコーパスから抽出するかどうか (default: True)
         relax_cases (bool): ガ≒格などをガ格として扱うか (default: False)
         knp_ext (str): KWDLC または KC ファイルの拡張子 (default: knp)
@@ -35,8 +35,8 @@ class KyotoReader:
 
     def __init__(self,
                  source: Union[Path, str],
-                 target_cases: Optional[List[str]] = None,
-                 target_corefs: Optional[List[str]] = None,
+                 target_cases: Optional[Collection[str]] = None,
+                 target_corefs: Optional[Collection[str]] = None,
                  extract_nes: bool = True,
                  relax_cases: bool = False,
                  use_pas_tag: bool = False,
@@ -68,8 +68,8 @@ class KyotoReader:
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
         self.doc_ids: List[str] = sorted(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
 
-        self.target_cases: List[str] = self._get_targets(target_cases, ALL_CASES, 'case')
-        self.target_corefs: List[str] = self._get_targets(target_corefs, ALL_COREFS, 'coref')
+        self.target_cases: Collection[str] = self._get_targets(target_cases, ALL_CASES, 'case')
+        self.target_corefs: Collection[str] = self._get_targets(target_corefs, ALL_COREFS, 'coref')
         self.relax_cases: bool = relax_cases
         self.extract_nes: bool = extract_nes
         self.use_pas_tag: bool = use_pas_tag
@@ -104,7 +104,7 @@ class KyotoReader:
                         did = match.group('did')
                         sid = match.group('sid')
                 buff += line
-            if not did_from_sid:
+            if did_from_sid is False:
                 did = path.stem
             if did is not None and buff:
                 did2knps[did] = buff
@@ -113,10 +113,10 @@ class KyotoReader:
         return did2knps
 
     @staticmethod
-    def _get_targets(input_: Optional[list],
-                     all_: list,
+    def _get_targets(input_: Optional[Collection],
+                     all_: Collection[Any],
                      type_: str,
-                     ) -> list:
+                     ) -> Collection[Any]:
         """Return a list of known relations."""
         if input_ is None:
             return all_
@@ -150,7 +150,7 @@ class KyotoReader:
             return None
 
     def process_documents(self,
-                          doc_ids: List[str],
+                          doc_ids: Iterable[str],
                           ) -> List[Optional[Document]]:
         """Process multiple documents following the given document IDs.
 
