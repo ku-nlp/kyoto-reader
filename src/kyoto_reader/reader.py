@@ -151,18 +151,30 @@ class KyotoReader:
 
     def process_documents(self,
                           doc_ids: Iterable[str],
+                          n_jobs: Optional[int] = None,
                           ) -> List[Optional[Document]]:
         """Process multiple documents following the given document IDs.
 
         Args:
             doc_ids (List[str]): IDs of documents to process.
+            n_jobs (int): The number of processes spawned to finish this task. (default: inherit from self)
         """
+        if n_jobs is None:
+            n_jobs = self.n_jobs
         args_iter = zip(repeat(self), doc_ids)
-        return self._mp_wrapper(KyotoReader.process_document, args_iter, self.mp_backend, self.n_jobs)
+        return self._mp_wrapper(KyotoReader.process_document, args_iter, self.mp_backend, n_jobs)
 
-    def process_all_documents(self) -> List[Optional[Document]]:
-        """Process all documents that KyotoReader has loaded."""
-        return self.process_documents(self.doc_ids)
+    def process_all_documents(self,
+                              n_jobs: Optional[int] = None,
+                              ) -> List[Optional[Document]]:
+        """Process all documents that KyotoReader has loaded.
+
+        Args:
+            n_jobs (int): The number of processes spawned to finish this task. (default: inherit from self)
+        """
+        if n_jobs is None:
+            n_jobs = self.n_jobs
+        return self.process_documents(self.doc_ids, n_jobs)
 
     @staticmethod
     def _mp_wrapper(func: Callable, args: Iterable[tuple], backend: Optional[str], n_jobs: int) -> list:
