@@ -11,7 +11,7 @@ kyoto-reader: A processor for KWDLC, KyotoCorpus, and AnnotatedFKCCorpus
 About
 ========================
 
-京都大学が公開している述語項構造や共参照関係が付与されたコーパスをパースし、Pythonから扱うためのインターフェースを提供します。
+京都大学が公開している述語項構造や共参照関係が付与されたコーパスをパースし、Python から扱うためのインターフェースを提供します。
 このツールは pyknp のラッパーであるため、形態素情報や係り受け関係なども扱うことが可能です。
 
 .. list-table:: 利用可能なコーパス一覧
@@ -23,13 +23,13 @@ About
       - Size
     * - 京都大学ウェブ文書リードコーパス_ (KWDLC)
       - ウェブテキスト
-      - 16,038文
+      - 16,038 文
     * - 京都大学テキストコーパス_ (KyotoCorpus)
       - 新聞記事・社説
-      - 15,872文
+      - 15,872 文
     * - 不満調査データセットタグ付きコーパス_ (AnnotatedFKCCorpus)
       - 不満に関する投稿
-      - 1,282文
+      - 1,282 文
 
 .. _京都大学ウェブ文書リードコーパス: https://github.com/ku-nlp/KWDLC
 .. _京都大学テキストコーパス: https://github.com/ku-nlp/KyotoCorpus
@@ -39,7 +39,7 @@ Requirements
 ========================
 
 - Python
-    -  Verified Versions: 3.7, 3.8, 3.9
+    -  Verified Versions: 3.7, 3.8, 3.9, 3.10
 - `pyknp 0.4.6+`_
 - KNP_ (optional)
 - JumanDIC_ (optional)
@@ -69,9 +69,9 @@ A Brief Explanation of KWDLC and other corpora
 ================================================
 
 | KWDLC, KyotoCorpus, AnnotatedFKCCorpus はいずれも日本語の文書に対して形態素や構文情報の他、述語項構造や共参照関係が人手で付与されたコーパス。
-| KWDLC はウェブから抽出した3文を1文書として約5,000文書に対してアノテーションされている。
-| KyotoCorpus は毎日新聞の記事を対象に、形態素・構文情報については 40,000 文に、述語項構造・共参照関係についてはそのうちの約10,000 文にアノテーションされている。
-| AnnotatedFKCCorpus は一般の人々から集められた不満テキスト約1,300文に対してアノテーションを行ったコーパスである。
+| KWDLC はウェブから抽出した 3 文を 1 文書として約 5,000 文書に対してアノテーションされている。
+| KyotoCorpus は毎日新聞の記事を対象に、形態素・構文情報については 40,000 文に、述語項構造・共参照関係についてはそのうちの約 10,000 文にアノテーションされている。
+| AnnotatedFKCCorpus は一般の人々から集められた不満テキスト約 1,300 文に対してアノテーションを行ったコーパスである。
 | なお、述語項構造・共参照関係のアノテーションは ``<rel>`` タグによって行われている。
 
 KWDLC の例:
@@ -113,7 +113,7 @@ Usage
                         )
    print('読み込んだ文書:')
    for doc_id in reader.doc_ids:
-       print(f'  文書ID: {doc_id}')
+       print(f'  文書 ID: {doc_id}')
 
    print('\n--- 述語項構造 ---')
    document: Document = reader.process_document('w201106-0000060050')
@@ -131,7 +131,7 @@ Usage
 .. code-block:: none
 
    読み込んだ文書:
-     文書ID: w201106-0000060050
+     文書 ID: w201106-0000060050
 
    --- 述語項構造 ---
    述語: トス
@@ -164,7 +164,7 @@ Browsing files
 
    $ kyoto show /path/to/knp/file.knp
 
-- ``kyoto list``: 指定されたディレクトリに含まれる文書ID を列挙
+- ``kyoto list``: 指定されたディレクトリに含まれる文書 ID を列挙
 
 .. code-block:: bash
 
@@ -177,7 +177,7 @@ Processing Corpus
 
 - ``kyoto configure``: コーパスのディレクトリに素性付与のための Makefile を生成
 
-  - ``make`` を実行することで、コーパスが1文書1ファイルに分割され、 ``knp/`` ディレクトリに素性の付与されたファイルが出力される。
+  - ``make`` を実行することで、コーパスが 1 文書 1 ファイルに分割され、 ``knp/`` ディレクトリに素性の付与されたファイルが出力される。
 
 .. code-block:: bash
 
