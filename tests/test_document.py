@@ -1,6 +1,9 @@
 from typing import List, Dict
+from pathlib import Path
 
-from kyoto_reader import KyotoReader, Mention, Entity, Predicate, SpecialArgument, Argument
+from pytest import fixture
+
+from kyoto_reader import ALL_CASES, ALL_COREFS, KyotoReader, Mention, Entity, Predicate, SpecialArgument, Argument
 
 
 def test_pas(fixture_kyoto_reader: KyotoReader):
@@ -400,3 +403,28 @@ def test_ne(fixture_kyoto_reader: KyotoReader):
     assert (ne.category, ne.name, ne.dmid_range) == ('ARTIFACT', '天の箱舟', range(24, 27))
     ne = nes[2]
     assert (ne.category, ne.name, ne.dmid_range) == ('LOCATION', 'ナザム村', range(39, 41))
+
+
+def test_zip(fixture_kyoto_reader: KyotoReader):
+    data_dir = Path(__file__).parent / 'data'
+    zip_reader = KyotoReader(data_dir / 'compress_knp/knp.zip',
+                         target_cases=ALL_CASES,
+                         target_corefs=ALL_COREFS,
+                         mp_backend=None)
+    assert fixture_kyoto_reader.doc_ids == zip_reader.doc_ids
+    assert all(
+        fixture_kyoto_reader.process_document(doc_id) == zip_reader.process_document(doc_id)
+        for doc_id in fixture_kyoto_reader.doc_ids
+    )
+
+def test_gzip(fixture_kyoto_reader: KyotoReader):
+    data_dir = Path(__file__).parent / 'data'
+    gzip_reader = KyotoReader(data_dir / 'gzip_knp',
+                         target_cases=ALL_CASES,
+                         target_corefs=ALL_COREFS,
+                         mp_backend=None)
+    assert fixture_kyoto_reader.doc_ids == gzip_reader.doc_ids
+    assert all(
+        fixture_kyoto_reader.process_document(doc_id) == gzip_reader.process_document(doc_id)
+        for doc_id in fixture_kyoto_reader.doc_ids
+    )
