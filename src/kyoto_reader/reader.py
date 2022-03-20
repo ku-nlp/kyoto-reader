@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import partial
 import _pickle as cPickle
 import gzip
 import logging
@@ -30,6 +31,8 @@ zip_handler = ArchiveHandler(zipfile.ZipFile, "namelist")
 
 class KyotoReader:
     """A class to manage a set of corpus documents.
+    Compressed file is supported.
+    However, nested compression (e.g. .knp.gz in zip file) is not supported.
 
     Args:
         source (Union[Path, str]): 対象の文書へのパス。ディレクトリが指定された場合、その中の全てのファイルを対象とする
@@ -52,7 +55,7 @@ class KyotoReader:
     }
 
     COMPRESS2HANDLER: Dict[str, Callable] = {
-        ".gz": gzip.open
+        ".gz": partial(gzip.open, mode='rt'),
     }
 
     def __init__(self,
@@ -95,7 +98,8 @@ class KyotoReader:
         else:
             logger.info(f'got file path, this file is treated as a source knp file')
             file_paths = [source]
-        self.did2pkls: Dict[str, Path] = {path.stem: path for path in file_paths if pickle_ext in path.suffix}
+        print(file_paths)
+        self.did2pkls: Dict[str, Path] = {path.stem: path for path in file_paths if pickle_ext in path.suffixes}
         self.mp_backend: Optional[str] = mp_backend if n_jobs != 0 else None
         if self.mp_backend is not None and self.archive_path is not None:
             logger.info("Multiprocessing with archive is too slow, so it is disabled")
@@ -106,16 +110,16 @@ class KyotoReader:
         if self.archive_path is not None:
             args_iter = (
                 (path, did_from_sid, self.archive_handler.opener, self.archive_path)
-                for path in file_paths if knp_ext in path.suffix
+                for path in file_paths if knp_ext in path.suffixes
             )
             with self.archive_handler.opener(self.archive_path) as archive:
                 args_iter = (
                     (path, did_from_sid, archive)
-                    for path in file_paths if knp_ext in path.suffix
+                    for path in file_paths if knp_ext in path.suffixes
                 )
                 rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
         else:
-            args_iter = ((path, did_from_sid) for path in file_paths if path.suffix == knp_ext)
+            args_iter = ((path, did_from_sid) for path in file_paths if knp_ext in path.suffixes)
             rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
 
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
@@ -147,7 +151,6 @@ class KyotoReader:
         """
         did2knps = {}
 
-
         def _read_knp(f):
             buff = ''
             did = sid = None
@@ -176,7 +179,11 @@ class KyotoReader:
                 text = f.read().decode("utf-8")
                 _read_knp(text.split("\n"))
         else:
-            with open(path) as f:
+            if any(key in path.suffix for key in KyotoReader.COMPRESS2HANDLER):
+                opener = KyotoReader.COMPRESS2HANDLER[path.suffix.replace(".knp", "")]
+            else:
+                opener = open
+            with opener(path) as f:
                 _read_knp(f.readlines())
 
         return did2knps
