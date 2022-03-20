@@ -54,7 +54,7 @@ class KyotoReader:
         ".zip": zip_handler
     }
 
-    COMPRESS2HANDLER: Dict[str, Callable] = {
+    COMPRESS2OPENER: Dict[str, Callable] = {
         ".gz": partial(gzip.open, mode='rt'),
     }
 
@@ -75,7 +75,7 @@ class KyotoReader:
         if not (isinstance(source, Path) or isinstance(source, str)):
             raise TypeError(f"document source must be Path or str type, but got '{type(source)}' type")
         # Yields all allowed single-file extension (e.g. .knp, .pkl.gz)
-        ALLOWED_SINGLE_FILE_EXT = list("".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(KyotoReader.COMPRESS2HANDLER.keys()))))
+        ALLOWED_SINGLE_FILE_EXT = list("".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(KyotoReader.COMPRESS2OPENER.keys()))))
         source = Path(source)
         source_suffix = source.suffix
         self.archive_path, self.archive_handler = None, None
@@ -178,8 +178,10 @@ class KyotoReader:
                 text = f.read().decode("utf-8")
                 _read_knp(text.split("\n"))
         else:
-            if any(key in path.suffix for key in KyotoReader.COMPRESS2HANDLER):
-                opener = KyotoReader.COMPRESS2HANDLER[path.suffix.replace(".knp", "")]
+            if any(key in path.suffixes for key in KyotoReader.COMPRESS2OPENER):
+                compress = set(path.suffixes) & set(KyotoReader.COMPRESS2OPENER.keys())
+                assert len(compress) == 1
+                opener = KyotoReader.COMPRESS2OPENER[compress.pop()]
             else:
                 opener = open
             with opener(path) as f:
