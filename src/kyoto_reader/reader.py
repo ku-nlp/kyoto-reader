@@ -1,10 +1,14 @@
+from dataclasses import dataclass
 import _pickle as cPickle
+import gzip
 import logging
 from pathlib import Path
 from typing import List, Dict, Optional, Union, Callable, Iterable, Collection, Any
-from collections import ChainMap
-from itertools import repeat
+import tarfile
+from collections import ChainMap, namedtuple
+from itertools import repeat, product
 from multiprocessing import Pool
+import zipfile
 
 from joblib import Parallel, delayed
 
@@ -13,6 +17,15 @@ from .constants import ALL_CASES, ALL_COREFS, SID_PTN, SID_PTN_KWDLC
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
+
+@dataclass
+class ArchiveHandler:
+    opener: Callable
+    # Name of function to list up all files in the archive
+    list_func_name: str
+
+tar_gzip_handler = ArchiveHandler(tarfile.open, "getnames")
+zip_handler = ArchiveHandler(zipfile.ZipFile, "namelist")
 
 
 class KyotoReader:
@@ -33,6 +46,15 @@ class KyotoReader:
         did_from_sid (bool): 文書IDを文書中のS-IDから決定する (default: True)
     """
 
+    ARCHIVE2HANDLER: Dict[str, Callable] = {
+        ".tar.gz": tar_gzip_handler,
+        ".zip": zip_handler
+    }
+
+    COMPRESS2HANDLER: Dict[str, Callable] = {
+        ".gz": gzip.open
+    }
+
     def __init__(self,
                  source: Union[Path, str],
                  target_cases: Optional[Collection[str]] = None,
@@ -49,21 +71,52 @@ class KyotoReader:
                  ) -> None:
         if not (isinstance(source, Path) or isinstance(source, str)):
             raise TypeError(f"document source must be Path or str type, but got '{type(source)}' type")
+        # Yields all allowed single-file extension (e.g. .knp, .pkl.gz)
+        ALLOWED_SINGLE_FILE_EXT = list("".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(KyotoReader.COMPRESS2HANDLER.keys()))))
         source = Path(source)
+        source_suffix = source.suffix
+        self.archive_path, self.archive_handler = None, None
+
         if source.is_dir():
             logger.info(f'got directory path, files in the directory is treated as source files')
             file_paths: List[Path] = []
-            for ext in (knp_ext, pickle_ext):
+            for ext in ALLOWED_SINGLE_FILE_EXT:
                 file_paths += sorted(source.glob(f'**/*{ext}' if recursive else f'*{ext}'))
+        # If source file is an archive, remember its path and handler
+        elif source_suffix in KyotoReader.ARCHIVE2HANDLER:
+            logger.info(f'got compressed file, files in the compressed file are treated as source files')
+            self.archive_path = source
+            self.archive_handler = KyotoReader.ARCHIVE2HANDLER[source_suffix]
+            with self.archive_handler.opener(source) as f:
+                file_paths = sorted(
+                    Path(x) for x in getattr(f, KyotoReader.ARCHIVE2HANDLER[source_suffix].list_func_name)()
+                    if Path(x).suffix in ALLOWED_SINGLE_FILE_EXT
+                )
         else:
             logger.info(f'got file path, this file is treated as a source knp file')
             file_paths = [source]
-        self.did2pkls: Dict[str, Path] = {path.stem: path for path in file_paths if path.suffix == pickle_ext}
+        self.did2pkls: Dict[str, Path] = {path.stem: path for path in file_paths if pickle_ext in path.suffix}
         self.mp_backend: Optional[str] = mp_backend if n_jobs != 0 else None
+        if self.mp_backend is not None and self.archive_path is not None:
+            logger.info("Multiprocessing with archive is too slow, so it is disabled")
+            logger.info("Run without multiprocessing can be relatively slow, so please consider unarchive the archive file")
+            self.mp_backend = None
         self.n_jobs: int = n_jobs
 
-        args_iter = ((path, did_from_sid) for path in file_paths if path.suffix == knp_ext)
-        rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
+        if self.archive_path is not None:
+            args_iter = (
+                (path, did_from_sid, self.archive_handler.opener, self.archive_path)
+                for path in file_paths if knp_ext in path.suffix
+            )
+            with self.archive_handler.opener(self.archive_path) as archive:
+                args_iter = (
+                    (path, did_from_sid, archive)
+                    for path in file_paths if knp_ext in path.suffix
+                )
+                rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
+        else:
+            args_iter = ((path, did_from_sid) for path in file_paths if path.suffix == knp_ext)
+            rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
 
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
         self.doc_ids: List[str] = sorted(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
@@ -77,18 +130,25 @@ class KyotoReader:
         self.pickle_ext: str = pickle_ext
 
     @staticmethod
-    def read_knp(path: Path, did_from_sid: bool) -> Dict[str, str]:
+    def read_knp(
+        path: Path,
+        did_from_sid: bool,
+        archive: Optional[Union[zipfile.ZipFile, tarfile.TarFile]] = None
+    ) -> Dict[str, str]:
         """Read KNP format file that is located at the specified path. The file can contain multiple documents.
 
         Args:
             path (Path): A path to a KNP format file.
             did_from_sid (bool): If True, determine the document ID from the sentence ID in the document.
+            archive (Optional[Union[zipfile.ZipFile, tarfile.TarFile]]): An archive to read the document from.
 
         Returns:
             Dict[str, str]: A mapping from a document ID to a KNP format string.
         """
         did2knps = {}
-        with path.open() as f:
+
+
+        def _read_knp(f):
             buff = ''
             did = sid = None
             for line in f:
@@ -110,6 +170,15 @@ class KyotoReader:
                 did2knps[did] = buff
             else:
                 logger.warning(f'empty file found and skipped: {path}')
+
+        if archive is not None:
+            with archive.open(str(path)) as f:
+                text = f.read().decode("utf-8")
+                _read_knp(text.split("\n"))
+        else:
+            with open(path) as f:
+                _read_knp(f.readlines())
+
         return did2knps
 
     @staticmethod
@@ -128,14 +197,20 @@ class KyotoReader:
             target.append(item)
         return target
 
-    def process_document(self, doc_id: str) -> Optional[Document]:
+    def process_document(
+        self,
+        doc_id: str,
+        archive: Optional[Union[zipfile.ZipFile, tarfile.TarFile]] = None
+    ) -> Optional[Document]:
         """Process one document following the given document ID.
 
         Args:
             doc_id (str): An ID of a document to process.
+            archive (Optional[Union[zipfile.ZipFile, tarfile.TarFile]]): An archive to read the document from.
         """
         if doc_id in self.did2pkls:
-            with self.did2pkls[doc_id].open(mode='rb') as f:
+            opener = open if archive is None else archive.open
+            with opener(self.did2pkls[doc_id], 'rb') as f:
                 return cPickle.load(f)
         elif doc_id in self.did2knps:
             return Document(self.did2knps[doc_id],
@@ -161,8 +236,14 @@ class KyotoReader:
         """
         if n_jobs is None:
             n_jobs = self.n_jobs
-        args_iter = zip(repeat(self), doc_ids)
-        return self._mp_wrapper(KyotoReader.process_document, args_iter, self.mp_backend, n_jobs)
+        if self.archive_path is not None:
+            assert self.mp_backend is None
+            with self.archive_handler.opener(self.archive_path) as archive:
+                args_iter = zip(repeat(self), doc_ids, repeat(archive))
+                return self._mp_wrapper(KyotoReader.process_document, args_iter, self.mp_backend, n_jobs)
+        else:
+            args_iter = zip(repeat(self), doc_ids)
+            return self._mp_wrapper(KyotoReader.process_document, args_iter, self.mp_backend, n_jobs)
 
     def process_all_documents(self,
                               n_jobs: Optional[int] = None,
