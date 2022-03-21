@@ -142,7 +142,7 @@ class KyotoReader:
             file_paths: List[Path] = []
             for ext in allowed_single_file_ext:
                 file_paths += sorted(source.glob(f'**/*{ext}' if recursive else f'*{ext}'))
-        # If source file is an archive, remember its path and handler
+        # If source file is an archive, build handler
         elif source_suffix in archive2handler:
             logger.info(f'got compressed file, files in the compressed file are treated as source files')
             # Compressed files are prohibited.
