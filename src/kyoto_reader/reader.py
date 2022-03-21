@@ -79,6 +79,10 @@ ARCHIVE2HANDLER: Dict[str, Callable] = {
     ".zip": ZipHandler
 }
 
+COMPRESS2OPEN: Dict[str, Callable] = {
+    ".gz": partial(gzip.open, mode='rt'),
+}
+
 
 class KyotoReader:
     """A class to manage a set of corpus documents.
@@ -99,12 +103,8 @@ class KyotoReader:
         n_jobs (int): 文書を読み込む処理の並列数 (default: -1(=コア数))
         did_from_sid (bool): 文書IDを文書中のS-IDから決定する (default: True)
         archive2handler (Dict[str, Callable]): 拡張子と対応するアーカイブハンドラーの辞書 (default: ARCHIVE2HANDLER)
+        compress2open (Dict[str, Callable]): 拡張子と対応するファイルオープン関数の辞書 (default: COMPRESS2OPEN)
     """
-
-    COMPRESS2OPEN: Dict[str, Callable] = {
-        ".gz": partial(gzip.open, mode='rt'),
-    }
-
     def __init__(self,
                  source: Union[Path, str],
                  target_cases: Optional[Collection[str]] = None,
@@ -119,6 +119,7 @@ class KyotoReader:
                  n_jobs: int = -1,
                  did_from_sid: bool = True,
                  archive2handler: Dict[str, ArchiveHandler] = ARCHIVE2HANDLER,
+                 compress2open: Dict[str, Callable] = COMPRESS2OPEN
                  ) -> None:
         if not (isinstance(source, Path) or isinstance(source, str)):
             raise TypeError(f"document source must be Path or str type, but got '{type(source)}' type")
@@ -129,7 +130,7 @@ class KyotoReader:
         if source.is_dir():
             # Yields all allowed single-file extension (e.g. .knp, .pkl.gz)
             allowed_single_file_ext = list(
-                "".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(KyotoReader.COMPRESS2OPEN.keys()))))
+                "".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(compress2open.keys()))))
             logger.info(f'got directory path, files in the directory is treated as source files')
             file_paths: List[Path] = []
             for ext in allowed_single_file_ext:
@@ -157,6 +158,8 @@ class KyotoReader:
             self.mp_backend = None
         self.n_jobs: int = n_jobs
 
+        # This must be set before read_knp is called.
+        self.compress2open = compress2open
         if self.archive_handler is not None:
             with self.archive_handler.open() as archive:
                 args_iter = (
@@ -226,10 +229,10 @@ class KyotoReader:
                 text = f.read().decode("utf-8")
                 _read_knp(text.split("\n"))
         else:
-            if any(key in path.suffixes for key in KyotoReader.COMPRESS2OPEN):
-                compress = set(path.suffixes) & set(KyotoReader.COMPRESS2OPEN.keys())
+            if any(key in path.suffixes for key in self.compress2open):
+                compress = set(path.suffixes) & set(self.compress2open.keys())
                 assert len(compress) == 1
-                _open = KyotoReader.COMPRESS2OPEN[compress.pop()]
+                _open = self.compress2open[compress.pop()]
             else:
                 _open = open
             with _open(path) as f:
