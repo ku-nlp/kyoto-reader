@@ -37,24 +37,42 @@ class ArchiveHandler:
         finally:
             f.close()
 
-    # Name of function to list up all files in the archive
     @abstractmethod
-    def get_names(self, f) -> List[str]:
+    def get_names(self, f: Any) -> List[str]:
+        """Get all file names in archive."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def open_member(self, f: Any, path: str):
+        """Extract file object from archive"""
         raise NotImplementedError
 
 class TarGzipHandler(ArchiveHandler):
     def _open(self, path: Path) -> tarfile.TarFile:
         return tarfile.open(path)
 
-    def get_names(self, f) -> List[str]:
+    def get_names(self, f: tarfile.TarFile) -> List[str]:
         return getattr(f, "getnames")()
+
+    @contextmanager
+    def open_member(self, f: tarfile.TarFile, path: str):
+        bytes = f.extractfile(path)
+        yield bytes
 
 class ZipHandler(ArchiveHandler):
     def _open(self, path: Path) -> zipfile.ZipFile:
         return zipfile.ZipFile(path)
 
-    def get_names(self, f) -> List[str]:
+    def get_names(self, f: zipfile.ZipFile) -> List[str]:
         return getattr(f, "namelist")()
+
+    @contextmanager
+    def open_member(self, f: zipfile.ZipFile, path: str):
+        g = f.open(path)
+        try:
+            yield g
+        finally:
+            g.close()
 
 ARCHIVE2HANDLER: Dict[str, Callable] = {
     ".tar.gz": TarGzipHandler,
@@ -105,7 +123,7 @@ class KyotoReader:
         if not (isinstance(source, Path) or isinstance(source, str)):
             raise TypeError(f"document source must be Path or str type, but got '{type(source)}' type")
         source = Path(source)
-        source_suffix = source.suffix
+        source_suffix = "".join(source.suffixes)
         self.archive_handler = None
 
         if source.is_dir():
@@ -125,7 +143,7 @@ class KyotoReader:
             with self.archive_handler.open() as archive:
                 file_paths = sorted(
                     Path(x) for x in self.archive_handler.get_names(archive)
-                    if Path(x).suffix in allowed_single_file_ext
+                    if "".join(Path(x).suffixes) in allowed_single_file_ext
                 )
         else:
             logger.info(f'got file path, this file is treated as a source knp file')
@@ -142,13 +160,13 @@ class KyotoReader:
         if self.archive_handler is not None:
             with self.archive_handler.open() as archive:
                 args_iter = (
-                    (path, did_from_sid, archive)
+                    (self, path, did_from_sid, archive)
                     for path in file_paths if knp_ext in path.suffixes
                 )
                 rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend,
                                                               self.n_jobs)
         else:
-            args_iter = ((path, did_from_sid) for path in file_paths if knp_ext in path.suffixes)
+            args_iter = ((self, path, did_from_sid) for path in file_paths if knp_ext in path.suffixes)
             rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
 
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
@@ -162,8 +180,8 @@ class KyotoReader:
         self.knp_ext: str = knp_ext
         self.pickle_ext: str = pickle_ext
 
-    @staticmethod
     def read_knp(
+        self,
         path: Path,
         did_from_sid: bool,
         archive: Optional[Union[zipfile.ZipFile, tarfile.TarFile]] = None
@@ -204,7 +222,7 @@ class KyotoReader:
                 logger.warning(f'empty file found and skipped: {path}')
 
         if archive is not None:
-            with archive.open(str(path)) as f:
+            with self.archive_handler.open_member(archive, str(path)) as f:
                 text = f.read().decode("utf-8")
                 _read_knp(text.split("\n"))
         else:

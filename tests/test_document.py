@@ -415,6 +415,18 @@ def test_zip(fixture_kyoto_reader: KyotoReader):
         for doc_id in fixture_kyoto_reader.doc_ids
     )
 
+def test_tar_gzip(fixture_kyoto_reader: KyotoReader):
+    data_dir = Path(__file__).parent / 'data'
+    tar_gzip_reader = KyotoReader(data_dir / 'compress_knp/knp.tar.gz',
+                         target_cases=ALL_CASES,
+                         target_corefs=ALL_COREFS,
+                         mp_backend=None)
+    assert fixture_kyoto_reader.doc_ids == tar_gzip_reader.doc_ids
+    assert all(
+        fixture_kyoto_reader.process_document(doc_id) == tar_gzip_reader.process_document(doc_id)
+        for doc_id in fixture_kyoto_reader.doc_ids
+    )
+
 def test_gzip(fixture_kyoto_reader: KyotoReader):
     data_dir = Path(__file__).parent / 'data'
     gzip_reader = KyotoReader(data_dir / 'gzip_knp',
