@@ -1,10 +1,11 @@
+from abc import abstractmethod
 import _pickle as cPickle
+from contextlib import contextmanager
 import gzip
 import logging
 import tarfile
 import zipfile
 from collections import ChainMap
-from dataclasses import dataclass
 from functools import partial
 from itertools import repeat, product
 from multiprocessing import Pool
@@ -20,15 +21,45 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-@dataclass
 class ArchiveHandler:
-    open: Callable
+    def __init__(self, archive_path: Path):
+        self.archive_path = archive_path
+
+    @abstractmethod
+    def _open(self, path: Path) -> Any:
+        raise NotImplementedError
+
+    @contextmanager
+    def open(self):
+        f = self._open(self.archive_path)
+        try:
+            yield f
+        finally:
+            f.close()
+
     # Name of function to list up all files in the archive
-    list_func_name: str
+    @abstractmethod
+    def get_names(self, f) -> List[str]:
+        raise NotImplementedError
 
+class TarGzipHandler(ArchiveHandler):
+    def _open(self, path: Path) -> tarfile.TarFile:
+        return tarfile.open(path)
 
-tar_gzip_handler = ArchiveHandler(tarfile.open, "getnames")
-zip_handler = ArchiveHandler(zipfile.ZipFile, "namelist")
+    def get_names(self, f) -> List[str]:
+        return getattr(f, "getnames")()
+
+class ZipHandler(ArchiveHandler):
+    def _open(self, path: Path) -> zipfile.ZipFile:
+        return zipfile.ZipFile(path)
+
+    def get_names(self, f) -> List[str]:
+        return getattr(f, "namelist")()
+
+ARCHIVE2HANDLER: Dict[str, Callable] = {
+    ".tar.gz": TarGzipHandler,
+    ".zip": ZipHandler
+}
 
 
 class KyotoReader:
@@ -49,12 +80,8 @@ class KyotoReader:
         mp_backend (Optional[str]): 'multiprocessing', 'joblib', or None (default: 'multiprocessing')
         n_jobs (int): 文書を読み込む処理の並列数 (default: -1(=コア数))
         did_from_sid (bool): 文書IDを文書中のS-IDから決定する (default: True)
+        archive2handler (Dict[str, Callable]): 拡張子と対応するアーカイブハンドラーの辞書 (default: ARCHIVE2HANDLER)
     """
-
-    ARCHIVE2HANDLER: Dict[str, Callable] = {
-        ".tar.gz": tar_gzip_handler,
-        ".zip": zip_handler
-    }
 
     COMPRESS2OPEN: Dict[str, Callable] = {
         ".gz": partial(gzip.open, mode='rt'),
@@ -73,6 +100,7 @@ class KyotoReader:
                  mp_backend: Optional[str] = 'multiprocessing',
                  n_jobs: int = -1,
                  did_from_sid: bool = True,
+                 archive2handler: Dict[str, ArchiveHandler] = ARCHIVE2HANDLER,
                  ) -> None:
         if not (isinstance(source, Path) or isinstance(source, str)):
             raise TypeError(f"document source must be Path or str type, but got '{type(source)}' type")
@@ -81,7 +109,7 @@ class KyotoReader:
             "".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(KyotoReader.COMPRESS2OPEN.keys()))))
         source = Path(source)
         source_suffix = source.suffix
-        self.archive_path, self.archive_handler = None, None
+        self.archive_handler = None
 
         if source.is_dir():
             logger.info(f'got directory path, files in the directory is treated as source files')
@@ -89,13 +117,12 @@ class KyotoReader:
             for ext in allowed_single_file_ext:
                 file_paths += sorted(source.glob(f'**/*{ext}' if recursive else f'*{ext}'))
         # If source file is an archive, remember its path and handler
-        elif source_suffix in KyotoReader.ARCHIVE2HANDLER:
+        elif source_suffix in archive2handler:
             logger.info(f'got compressed file, files in the compressed file are treated as source files')
-            self.archive_path = source
-            self.archive_handler = KyotoReader.ARCHIVE2HANDLER[source_suffix]
-            with self.archive_handler.open(source) as f:
+            self.archive_handler = archive2handler[source_suffix](source)
+            with self.archive_handler.open() as archive:
                 file_paths = sorted(
-                    Path(x) for x in getattr(f, KyotoReader.ARCHIVE2HANDLER[source_suffix].list_func_name)()
+                    Path(x) for x in self.archive_handler.get_names(archive)
                     if Path(x).suffix in allowed_single_file_ext
                 )
         else:
@@ -103,15 +130,15 @@ class KyotoReader:
             file_paths = [source]
         self.did2pkls: Dict[str, Path] = {path.stem: path for path in file_paths if pickle_ext in path.suffixes}
         self.mp_backend: Optional[str] = mp_backend if n_jobs != 0 else None
-        if self.mp_backend is not None and self.archive_path is not None:
+        if self.mp_backend is not None and self.archive_handler is not None:
             logger.info("Multiprocessing with archive is too slow, so it is disabled")
             logger.info(
                 "Run without multiprocessing can be relatively slow, so please consider unarchive the archive file")
             self.mp_backend = None
         self.n_jobs: int = n_jobs
 
-        if self.archive_path is not None:
-            with self.archive_handler.open(self.archive_path) as archive:
+        if self.archive_handler is not None:
+            with self.archive_handler.open() as archive:
                 args_iter = (
                     (path, did_from_sid, archive)
                     for path in file_paths if knp_ext in path.suffixes
@@ -245,9 +272,9 @@ class KyotoReader:
         """
         if n_jobs is None:
             n_jobs = self.n_jobs
-        if self.archive_path is not None:
+        if self.archive_handler is not None:
             assert self.mp_backend is None
-            with self.archive_handler.open(self.archive_path) as archive:
+            with self.archive_handler.open() as archive:
                 args_iter = zip(repeat(self), doc_ids, repeat(archive))
                 return self._mp_wrapper(KyotoReader.process_document, args_iter, self.mp_backend, n_jobs)
         else:
