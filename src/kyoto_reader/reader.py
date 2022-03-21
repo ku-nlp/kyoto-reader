@@ -1,29 +1,31 @@
-from dataclasses import dataclass
-from functools import partial
 import _pickle as cPickle
 import gzip
 import logging
-from pathlib import Path
-from typing import List, Dict, Optional, Union, Callable, Iterable, Collection, Any
 import tarfile
-from collections import ChainMap, namedtuple
+import zipfile
+from collections import ChainMap
+from dataclasses import dataclass
+from functools import partial
 from itertools import repeat, product
 from multiprocessing import Pool
-import zipfile
+from pathlib import Path
+from typing import List, Dict, Optional, Union, Callable, Iterable, Collection, Any
 
 from joblib import Parallel, delayed
 
-from .document import Document
 from .constants import ALL_CASES, ALL_COREFS, SID_PTN, SID_PTN_KWDLC
+from .document import Document
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
+
 
 @dataclass
 class ArchiveHandler:
     opener: Callable
     # Name of function to list up all files in the archive
     list_func_name: str
+
 
 tar_gzip_handler = ArchiveHandler(tarfile.open, "getnames")
 zip_handler = ArchiveHandler(zipfile.ZipFile, "namelist")
@@ -75,7 +77,8 @@ class KyotoReader:
         if not (isinstance(source, Path) or isinstance(source, str)):
             raise TypeError(f"document source must be Path or str type, but got '{type(source)}' type")
         # Yields all allowed single-file extension (e.g. .knp, .pkl.gz)
-        ALLOWED_SINGLE_FILE_EXT = list("".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(KyotoReader.COMPRESS2OPENER.keys()))))
+        ALLOWED_SINGLE_FILE_EXT = list(
+            "".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(KyotoReader.COMPRESS2OPENER.keys()))))
         source = Path(source)
         source_suffix = source.suffix
         self.archive_path, self.archive_handler = None, None
@@ -102,7 +105,8 @@ class KyotoReader:
         self.mp_backend: Optional[str] = mp_backend if n_jobs != 0 else None
         if self.mp_backend is not None and self.archive_path is not None:
             logger.info("Multiprocessing with archive is too slow, so it is disabled")
-            logger.info("Run without multiprocessing can be relatively slow, so please consider unarchive the archive file")
+            logger.info(
+                "Run without multiprocessing can be relatively slow, so please consider unarchive the archive file")
             self.mp_backend = None
         self.n_jobs: int = n_jobs
 
@@ -116,7 +120,8 @@ class KyotoReader:
                     (path, did_from_sid, archive)
                     for path in file_paths if knp_ext in path.suffixes
                 )
-                rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
+                rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend,
+                                                              self.n_jobs)
         else:
             args_iter = ((path, did_from_sid) for path in file_paths if knp_ext in path.suffixes)
             rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
