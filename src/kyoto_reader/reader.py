@@ -22,7 +22,7 @@ logger.setLevel(logging.WARNING)
 
 @dataclass
 class ArchiveHandler:
-    opener: Callable
+    open: Callable
     # Name of function to list up all files in the archive
     list_func_name: str
 
@@ -56,7 +56,7 @@ class KyotoReader:
         ".zip": zip_handler
     }
 
-    COMPRESS2OPENER: Dict[str, Callable] = {
+    COMPRESS2OPEN: Dict[str, Callable] = {
         ".gz": partial(gzip.open, mode='rt'),
     }
 
@@ -78,7 +78,7 @@ class KyotoReader:
             raise TypeError(f"document source must be Path or str type, but got '{type(source)}' type")
         # Yields all allowed single-file extension (e.g. .knp, .pkl.gz)
         allowed_single_file_ext = list(
-            "".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(KyotoReader.COMPRESS2OPENER.keys()))))
+            "".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(KyotoReader.COMPRESS2OPEN.keys()))))
         source = Path(source)
         source_suffix = source.suffix
         self.archive_path, self.archive_handler = None, None
@@ -93,7 +93,7 @@ class KyotoReader:
             logger.info(f'got compressed file, files in the compressed file are treated as source files')
             self.archive_path = source
             self.archive_handler = KyotoReader.ARCHIVE2HANDLER[source_suffix]
-            with self.archive_handler.opener(source) as f:
+            with self.archive_handler.open(source) as f:
                 file_paths = sorted(
                     Path(x) for x in getattr(f, KyotoReader.ARCHIVE2HANDLER[source_suffix].list_func_name)()
                     if Path(x).suffix in allowed_single_file_ext
@@ -111,7 +111,7 @@ class KyotoReader:
         self.n_jobs: int = n_jobs
 
         if self.archive_path is not None:
-            with self.archive_handler.opener(self.archive_path) as archive:
+            with self.archive_handler.open(self.archive_path) as archive:
                 args_iter = (
                     (path, did_from_sid, archive)
                     for path in file_paths if knp_ext in path.suffixes
@@ -179,13 +179,13 @@ class KyotoReader:
                 text = f.read().decode("utf-8")
                 _read_knp(text.split("\n"))
         else:
-            if any(key in path.suffixes for key in KyotoReader.COMPRESS2OPENER):
-                compress = set(path.suffixes) & set(KyotoReader.COMPRESS2OPENER.keys())
+            if any(key in path.suffixes for key in KyotoReader.COMPRESS2OPEN):
+                compress = set(path.suffixes) & set(KyotoReader.COMPRESS2OPEN.keys())
                 assert len(compress) == 1
-                opener = KyotoReader.COMPRESS2OPENER[compress.pop()]
+                _open = KyotoReader.COMPRESS2OPEN[compress.pop()]
             else:
-                opener = open
-            with opener(path) as f:
+                _open = open
+            with _open(path) as f:
                 _read_knp(f.readlines())
 
         return did2knps
@@ -218,8 +218,8 @@ class KyotoReader:
             archive (Optional[Union[zipfile.ZipFile, tarfile.TarFile]]): An archive to read the document from.
         """
         if doc_id in self.did2pkls:
-            opener = open if archive is None else archive.open
-            with opener(self.did2pkls[doc_id], 'rb') as f:
+            _open = open if archive is None else archive.open
+            with _open(self.did2pkls[doc_id], 'rb') as f:
                 return cPickle.load(f)
         elif doc_id in self.did2knps:
             return Document(self.did2knps[doc_id],
@@ -247,7 +247,7 @@ class KyotoReader:
             n_jobs = self.n_jobs
         if self.archive_path is not None:
             assert self.mp_backend is None
-            with self.archive_handler.opener(self.archive_path) as archive:
+            with self.archive_handler.open(self.archive_path) as archive:
                 args_iter = zip(repeat(self), doc_ids, repeat(archive))
                 return self._mp_wrapper(KyotoReader.process_document, args_iter, self.mp_backend, n_jobs)
         else:
