@@ -111,10 +111,6 @@ class KyotoReader:
         self.n_jobs: int = n_jobs
 
         if self.archive_path is not None:
-            args_iter = (
-                (path, did_from_sid, self.archive_handler.opener, self.archive_path)
-                for path in file_paths if knp_ext in path.suffixes
-            )
             with self.archive_handler.opener(self.archive_path) as archive:
                 args_iter = (
                     (path, did_from_sid, archive)
