@@ -104,14 +104,14 @@ class KyotoReader:
                  ) -> None:
         if not (isinstance(source, Path) or isinstance(source, str)):
             raise TypeError(f"document source must be Path or str type, but got '{type(source)}' type")
-        # Yields all allowed single-file extension (e.g. .knp, .pkl.gz)
-        allowed_single_file_ext = list(
-            "".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(KyotoReader.COMPRESS2OPEN.keys()))))
         source = Path(source)
         source_suffix = source.suffix
         self.archive_handler = None
 
         if source.is_dir():
+            # Yields all allowed single-file extension (e.g. .knp, .pkl.gz)
+            allowed_single_file_ext = list(
+                "".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(KyotoReader.COMPRESS2OPEN.keys()))))
             logger.info(f'got directory path, files in the directory is treated as source files')
             file_paths: List[Path] = []
             for ext in allowed_single_file_ext:
@@ -119,6 +119,8 @@ class KyotoReader:
         # If source file is an archive, remember its path and handler
         elif source_suffix in archive2handler:
             logger.info(f'got compressed file, files in the compressed file are treated as source files')
+            # Compressed files are prohibited.
+            allowed_single_file_ext = (knp_ext, pickle_ext)
             self.archive_handler = archive2handler[source_suffix](source)
             with self.archive_handler.open() as archive:
                 file_paths = sorted(
