@@ -335,10 +335,14 @@ def test_coref2(fixture_kyoto_reader: KyotoReader):
     assert entity.exophor is None
     mentions: List[Mention] = sorted(entity.all_mentions, key=lambda x: x.dtid)
     assert len(mentions) == 4
-    assert (mentions[0].core, mentions[0].dtid, mentions[0].eids) == ('ドクター', 7, {4})
-    assert (mentions[1].core, mentions[1].dtid, mentions[1].eids) == ('ドクター', 11, {14})
-    assert (mentions[2].core, mentions[2].dtid, mentions[2].eids) == ('ドクター', 16, {14})
-    assert (mentions[3].core, mentions[3].dtid, mentions[3].eids) == ('皆様', 17, {14})
+    assert (mentions[0].core, mentions[0].dtid,
+            mentions[0].eids) == ('ドクター', 7, {4})
+    assert (mentions[1].core, mentions[1].dtid,
+            mentions[1].eids) == ('ドクター', 11, {14})
+    assert (mentions[2].core, mentions[2].dtid,
+            mentions[2].eids) == ('ドクター', 16, {14})
+    assert (mentions[3].core, mentions[3].dtid,
+            mentions[3].eids) == ('皆様', 17, {14})
 
 
 def test_coref_link1(fixture_kyoto_reader: KyotoReader):
@@ -388,53 +392,63 @@ def test_ne(fixture_kyoto_reader: KyotoReader):
     nes = document.named_entities
     assert len(nes) == 2
     ne = nes[0]
-    assert (ne.category, ne.name, ne.dmid_range) == ('ORGANIZATION', '柏市ひまわり園', range(5, 9))
+    assert (ne.category, ne.name, ne.dmid_range) == (
+        'ORGANIZATION', '柏市ひまわり園', range(5, 9))
     ne = nes[1]
-    assert (ne.category, ne.name, ne.dmid_range) == ('DATE', '平成２３年度', range(11, 14))
+    assert (ne.category, ne.name, ne.dmid_range) == (
+        'DATE', '平成２３年度', range(11, 14))
 
     document = fixture_kyoto_reader.process_document('w201106-0000074273')
     nes = document.named_entities
     assert len(nes) == 3
     ne = nes[0]
-    assert (ne.category, ne.name, ne.dmid_range) == ('LOCATION', 'ダーマ神殿', range(15, 17))
+    assert (ne.category, ne.name, ne.dmid_range) == (
+        'LOCATION', 'ダーマ神殿', range(15, 17))
     ne = nes[1]
-    assert (ne.category, ne.name, ne.dmid_range) == ('ARTIFACT', '天の箱舟', range(24, 27))
+    assert (ne.category, ne.name, ne.dmid_range) == (
+        'ARTIFACT', '天の箱舟', range(24, 27))
     ne = nes[2]
-    assert (ne.category, ne.name, ne.dmid_range) == ('LOCATION', 'ナザム村', range(39, 41))
+    assert (ne.category, ne.name, ne.dmid_range) == (
+        'LOCATION', 'ナザム村', range(39, 41))
 
 
 def test_zip(fixture_kyoto_reader: KyotoReader):
     data_dir = Path(__file__).parent / 'data'
     zip_reader = KyotoReader(data_dir / 'compress_knp/knp.zip',
-                         target_cases=ALL_CASES,
-                         target_corefs=ALL_COREFS,
-                         mp_backend=None)
+                             target_cases=ALL_CASES,
+                             target_corefs=ALL_COREFS,
+                             mp_backend=None)
     assert fixture_kyoto_reader.doc_ids == zip_reader.doc_ids
     assert all(
-        fixture_kyoto_reader.process_document(doc_id) == zip_reader.process_document(doc_id)
+        fixture_kyoto_reader.process_document(
+            doc_id) == zip_reader.process_document(doc_id)
         for doc_id in fixture_kyoto_reader.doc_ids
     )
+
 
 def test_tar_gzip(fixture_kyoto_reader: KyotoReader):
     data_dir = Path(__file__).parent / 'data'
     tar_gzip_reader = KyotoReader(data_dir / 'compress_knp/knp.tar.gz',
-                         target_cases=ALL_CASES,
-                         target_corefs=ALL_COREFS,
-                         mp_backend=None)
+                                  target_cases=ALL_CASES,
+                                  target_corefs=ALL_COREFS,
+                                  mp_backend=None)
     assert fixture_kyoto_reader.doc_ids == tar_gzip_reader.doc_ids
     assert all(
-        fixture_kyoto_reader.process_document(doc_id) == tar_gzip_reader.process_document(doc_id)
+        fixture_kyoto_reader.process_document(
+            doc_id) == tar_gzip_reader.process_document(doc_id)
         for doc_id in fixture_kyoto_reader.doc_ids
     )
+
 
 def test_gzip(fixture_kyoto_reader: KyotoReader):
     data_dir = Path(__file__).parent / 'data'
     gzip_reader = KyotoReader(data_dir / 'gzip_knp',
-                         target_cases=ALL_CASES,
-                         target_corefs=ALL_COREFS,
-                         mp_backend=None)
+                              target_cases=ALL_CASES,
+                              target_corefs=ALL_COREFS,
+                              mp_backend=None)
     assert fixture_kyoto_reader.doc_ids == gzip_reader.doc_ids
     assert all(
-        fixture_kyoto_reader.process_document(doc_id) == gzip_reader.process_document(doc_id)
+        fixture_kyoto_reader.process_document(
+            doc_id) == gzip_reader.process_document(doc_id)
         for doc_id in fixture_kyoto_reader.doc_ids
     )

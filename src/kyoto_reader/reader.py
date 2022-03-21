@@ -25,6 +25,7 @@ class ArchiveHandler:
     """Base class for handling archive.
     Each subclass should correspond with one extension (e.g. .zip).
     """
+
     def __init__(self, archive_path: Path):
         self.archive_path = archive_path
 
@@ -54,6 +55,7 @@ class ArchiveHandler:
         """Extract file object from archive"""
         raise NotImplementedError
 
+
 class TarGzipHandler(ArchiveHandler):
     def _open(self, path: Path) -> tarfile.TarFile:
         return tarfile.open(path)
@@ -65,6 +67,7 @@ class TarGzipHandler(ArchiveHandler):
     def open_member(self, f: tarfile.TarFile, path: str):
         bytes = f.extractfile(path)
         yield bytes
+
 
 class ZipHandler(ArchiveHandler):
     def _open(self, path: Path) -> zipfile.ZipFile:
@@ -80,6 +83,7 @@ class ZipHandler(ArchiveHandler):
             yield g
         finally:
             g.close()
+
 
 ARCHIVE2HANDLER: Dict[str, Callable] = {
     ".tar.gz": TarGzipHandler,
@@ -112,6 +116,7 @@ class KyotoReader:
         archive2handler (Dict[str, Callable]): 拡張子と対応するアーカイブハンドラーの辞書 (default: ARCHIVE2HANDLER)
         compress2open (Dict[str, Callable]): 拡張子と対応するファイルオープン関数の辞書 (default: COMPRESS2OPEN)
     """
+
     def __init__(self,
                  source: Union[Path, str],
                  target_cases: Optional[Collection[str]] = None,
@@ -129,7 +134,8 @@ class KyotoReader:
                  compress2open: Dict[str, Callable] = COMPRESS2OPEN
                  ) -> None:
         if not (isinstance(source, Path) or isinstance(source, str)):
-            raise TypeError(f"document source must be Path or str type, but got '{type(source)}' type")
+            raise TypeError(
+                f"document source must be Path or str type, but got '{type(source)}' type")
         source = Path(source)
         source_suffix = "".join(source.suffixes)
         self.archive_handler = None
@@ -138,13 +144,16 @@ class KyotoReader:
             # Yields all allowed single-file extension (e.g. .knp, .pkl.gz)
             allowed_single_file_ext = list(
                 "".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(compress2open.keys()))))
-            logger.info(f'got directory path, files in the directory is treated as source files')
+            logger.info(
+                f'got directory path, files in the directory is treated as source files')
             file_paths: List[Path] = []
             for ext in allowed_single_file_ext:
-                file_paths += sorted(source.glob(f'**/*{ext}' if recursive else f'*{ext}'))
+                file_paths += sorted(source.glob(
+                    f'**/*{ext}' if recursive else f'*{ext}'))
         # If source file is an archive, build handler
         elif source_suffix in archive2handler:
-            logger.info(f'got compressed file, files in the compressed file are treated as source files')
+            logger.info(
+                f'got compressed file, files in the compressed file are treated as source files')
             # Compressed files are prohibited.
             allowed_single_file_ext = (knp_ext, pickle_ext)
             self.archive_handler = archive2handler[source_suffix](source)
@@ -154,12 +163,15 @@ class KyotoReader:
                     if "".join(Path(x).suffixes) in allowed_single_file_ext
                 )
         else:
-            logger.info(f'got file path, this file is treated as a source knp file')
+            logger.info(
+                f'got file path, this file is treated as a source knp file')
             file_paths = [source]
-        self.did2pkls: Dict[str, Path] = {path.stem: path for path in file_paths if pickle_ext in path.suffixes}
+        self.did2pkls: Dict[str, Path] = {
+            path.stem: path for path in file_paths if pickle_ext in path.suffixes}
         self.mp_backend: Optional[str] = mp_backend if n_jobs != 0 else None
         if self.mp_backend is not None and self.archive_handler is not None:
-            logger.info("Multiprocessing with archive is too slow, so it is disabled")
+            logger.info(
+                "Multiprocessing with archive is too slow, so it is disabled")
             logger.info(
                 "Run without multiprocessing can be relatively slow, so please consider unarchive the archive file")
             self.mp_backend = None
@@ -176,14 +188,19 @@ class KyotoReader:
                 rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend,
                                                               self.n_jobs)
         else:
-            args_iter = ((self, path, did_from_sid) for path in file_paths if knp_ext in path.suffixes)
-            rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
+            args_iter = ((self, path, did_from_sid)
+                         for path in file_paths if knp_ext in path.suffixes)
+            rets: List[Dict[str, str]] = self._mp_wrapper(
+                KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
 
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
-        self.doc_ids: List[str] = sorted(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
+        self.doc_ids: List[str] = sorted(
+            set(self.did2knps.keys()) | set(self.did2pkls.keys()))
 
-        self.target_cases: Collection[str] = self._get_targets(target_cases, ALL_CASES, 'case')
-        self.target_corefs: Collection[str] = self._get_targets(target_corefs, ALL_COREFS, 'coref')
+        self.target_cases: Collection[str] = self._get_targets(
+            target_cases, ALL_CASES, 'case')
+        self.target_corefs: Collection[str] = self._get_targets(
+            target_corefs, ALL_COREFS, 'coref')
         self.relax_cases: bool = relax_cases
         self.extract_nes: bool = extract_nes
         self.use_pas_tag: bool = use_pas_tag
@@ -214,9 +231,11 @@ class KyotoReader:
             for line in f:
                 if line.startswith('# S-ID:') and did_from_sid:
                     sid_string = line[7:].strip().split()[0]
-                    match = SID_PTN_KWDLC.match(sid_string) or SID_PTN.match(sid_string)
+                    match = SID_PTN_KWDLC.match(
+                        sid_string) or SID_PTN.match(sid_string)
                     if match is None:
-                        raise ValueError(f'unsupported S-ID format: {sid_string} in {path}')
+                        raise ValueError(
+                            f'unsupported S-ID format: {sid_string} in {path}')
                     if did != match.group('did') or sid == match.group('sid'):
                         if did is not None:
                             did2knps[did] = buff
