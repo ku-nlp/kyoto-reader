@@ -22,15 +22,22 @@ logger.setLevel(logging.WARNING)
 
 
 class ArchiveHandler:
+    """Base class for handling archive.
+    Each subclass should correspond with one extension (e.g. .zip).
+    """
     def __init__(self, archive_path: Path):
         self.archive_path = archive_path
 
     @abstractmethod
     def _open(self, path: Path) -> Any:
+        """Return a file-like object for the given path."""
         raise NotImplementedError
 
     @contextmanager
     def open(self):
+        """Main function to open the archive.
+        Specific open function for each extension should be implemented in a subclass.
+        """
         f = self._open(self.archive_path)
         try:
             yield f
@@ -38,7 +45,7 @@ class ArchiveHandler:
             f.close()
 
     @abstractmethod
-    def get_names(self, f: Any) -> List[str]:
+    def get_member_names(self, f: Any) -> List[str]:
         """Get all file names in archive."""
         raise NotImplementedError
 
@@ -51,7 +58,7 @@ class TarGzipHandler(ArchiveHandler):
     def _open(self, path: Path) -> tarfile.TarFile:
         return tarfile.open(path)
 
-    def get_names(self, f: tarfile.TarFile) -> List[str]:
+    def get_member_names(self, f: tarfile.TarFile) -> List[str]:
         return getattr(f, "getnames")()
 
     @contextmanager
@@ -63,7 +70,7 @@ class ZipHandler(ArchiveHandler):
     def _open(self, path: Path) -> zipfile.ZipFile:
         return zipfile.ZipFile(path)
 
-    def get_names(self, f: zipfile.ZipFile) -> List[str]:
+    def get_member_names(self, f: zipfile.ZipFile) -> List[str]:
         return getattr(f, "namelist")()
 
     @contextmanager
@@ -143,7 +150,7 @@ class KyotoReader:
             self.archive_handler = archive2handler[source_suffix](source)
             with self.archive_handler.open() as archive:
                 file_paths = sorted(
-                    Path(x) for x in self.archive_handler.get_names(archive)
+                    Path(x) for x in self.archive_handler.get_member_names(archive)
                     if "".join(Path(x).suffixes) in allowed_single_file_ext
                 )
         else:
