@@ -11,6 +11,7 @@ from itertools import repeat, product
 from multiprocessing import Pool
 from pathlib import Path
 from typing import List, Dict, Optional, Union, Callable, Iterable, Collection, Any
+from enum import Enum
 
 from joblib import Parallel, delayed
 
@@ -20,75 +21,168 @@ from .document import Document
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-
-class ArchiveHandler:
-    """Base class for handling archive.
-    Each subclass should correspond with one extension (e.g. .zip).
+# 実装方針
+"""
+dir と archive は分ける
+.gz.zip は無理なのでサポートしない
+または予め archive は tmp dir に吐くとか
+サポートするのは以下
+- archive
+- directory
+- compressed files in directory
+- file
+- compressed file
+"""
+class FileCollectionType(Enum):
     """
+    Enum for file collection types.
+    """
+    TAR_GZ = '.tar.gz'
+    ZIP = '.zip'
+    DIR = ''
 
-    def __init__(self, archive_path: Path):
-        self.archive_path = archive_path
 
-    @abstractmethod
-    def _open(self, path: Path) -> Any:
-        """Return a file-like object for the given path."""
-        raise NotImplementedError
+class FileCollectionHandler:
+    def __init__(self, path: Path):
+        self.path = path
+        self.type = self._get_type(path)
+        self.members = self._list_members()
+
+    @staticmethod
+    def _get_type(path: Path) -> FileCollectionType:
+        if path.is_dir():
+            return FileCollectionType.DIR
+        return FileCollectionType(path.suffix)  # FIXME: .tar.gz is not recognized as a file type
+
+    def _list_members(self) -> List[Path]:
+        if self.type == FileCollectionType.DIR:
+            return [p.relative_to(self.path) for p in self.path.glob('**/*') if p.is_file()]
+        elif self.type == FileCollectionType.TAR_GZ:
+            with tarfile.open(self.path, mode='r') as f:
+                return [Path(p) for p in f.getnames()]
+        elif self.type == FileCollectionType.ZIP:
+            with zipfile.ZipFile(self.path, mode='r') as f:
+                return [Path(p) for p in f.namelist()]
+        else:
+            raise ValueError(f'Unsupported collection type: {self.type}')
 
     @contextmanager
     def open(self):
-        """Main function to open the archive.
-        Specific open function for each extension should be implemented in a subclass.
-        """
-        f = self._open(self.archive_path)
         try:
-            yield f
+            if self.type == FileCollectionType.DIR:
+                file = self.path
+            elif self.type == FileCollectionType.TAR_GZ:
+                file = tarfile.open(self.path, mode='r')
+            elif self.type == FileCollectionType.ZIP:
+                file = zipfile.ZipFile(self.path, mode='r')
+            else:
+                file = None
+                raise ValueError(f'Unsupported collection type: {self.type}')
+            yield file
+        finally:
+            hasattr(file, 'close') and file.close()
+
+    @contextmanager
+    def open_member(self, file, member: Path):
+        try:
+            if self.type == FileCollectionType.TAR_GZ:
+                f = file.extractfile(member)
+            elif self.type == FileCollectionType.ZIP:
+                f = file.open(member)
+            elif self.type == FileCollectionType.DIR:
+                f = (file / member).open()
+            else:
+                f = None
+                raise ValueError(f'Unsupported collection type: {self.type}')
+            yield file
         finally:
             f.close()
 
-    @abstractmethod
-    def get_member_names(self, f: Any) -> List[str]:
-        """Get all file names in archive."""
-        raise NotImplementedError
+    # def list_contents(self) -> List[str]:
+    #     if self.type == FileCollectionType.DIR:
+    #         return [p.name for p in self.path.glob('**/*') if p.is_file()]
+    #     elif self.type == FileCollectionType.TAR_GZ:
+    #         with tarfile.open(self.path, mode='r') as f:
+    #             return f.get_names()
+    #     elif self.type == FileCollectionType.ZIP:
+    #         with zipfile.ZipFile(self.path, mode='r') as f:
+    #             return f.namelist()
+    #     else:
+    #         raise ValueError(f'Unsupported file type: {self.type}')
 
-    @abstractmethod
-    def open_member(self, f: Any, path: str):
-        """Extract file object from archive"""
-        raise NotImplementedError
-
-
-class TarGzipHandler(ArchiveHandler):
-    def _open(self, path: Path) -> tarfile.TarFile:
-        return tarfile.open(path)
-
-    def get_member_names(self, f: tarfile.TarFile) -> List[str]:
-        return getattr(f, "getnames")()
-
-    @contextmanager
-    def open_member(self, f: tarfile.TarFile, path: str):
-        bytes = f.extractfile(path)
-        yield bytes
+    @classmethod
+    def is_supported_path(cls, path: Path) -> bool:
+        return path.is_dir() or path.suffix in (t.value for t in FileCollectionType)
 
 
-class ZipHandler(ArchiveHandler):
-    def _open(self, path: Path) -> zipfile.ZipFile:
-        return zipfile.ZipFile(path)
+# class ArchiveHandler:
+#     """Base class for handling archive.
+#     Each subclass should correspond with one extension (e.g. .zip).
+#     """
+#
+#     def __init__(self, archive_path: Path):
+#         self.archive_path = archive_path
+#
+#     @abstractmethod
+#     def _open(self, path: Path) -> Any:
+#         """Return a file-like object for the given path."""
+#         raise NotImplementedError
+#
+#     @contextmanager
+#     def open(self):
+#         """Main function to open the archive.
+#         Specific open function for each extension should be implemented in a subclass.
+#         """
+#         f = self._open(self.archive_path)
+#         try:
+#             yield f
+#         finally:
+#             f.close()
+#
+#     @abstractmethod
+#     def get_member_names(self, f: Any) -> List[str]:
+#         """Get all file names in archive."""
+#         raise NotImplementedError
+#
+#     @abstractmethod
+#     def open_member(self, f: Any, path: str):
+#         """Extract file object from archive"""
+#         raise NotImplementedError
+#
+#
+# class TarGzipHandler(ArchiveHandler):
+#     def _open(self, path: Path) -> tarfile.TarFile:
+#         return tarfile.open(path)
+#
+#     def get_member_names(self, f: tarfile.TarFile) -> List[str]:
+#         return getattr(f, "getnames")()
+#
+#     @contextmanager
+#     def open_member(self, f: tarfile.TarFile, path: str):
+#         bytes = f.extractfile(path)
+#         yield bytes
+#
+#
+# class ZipHandler(ArchiveHandler):
+#     def _open(self, path: Path) -> zipfile.ZipFile:
+#         return zipfile.ZipFile(path)
+#
+#     def get_member_names(self, f: zipfile.ZipFile) -> List[str]:
+#         return getattr(f, "namelist")()
+#
+#     @contextmanager
+#     def open_member(self, f: zipfile.ZipFile, path: str):
+#         g = f.open(path)
+#         try:
+#             yield g
+#         finally:
+#             g.close()
 
-    def get_member_names(self, f: zipfile.ZipFile) -> List[str]:
-        return getattr(f, "namelist")()
 
-    @contextmanager
-    def open_member(self, f: zipfile.ZipFile, path: str):
-        g = f.open(path)
-        try:
-            yield g
-        finally:
-            g.close()
-
-
-ARCHIVE2HANDLER: Dict[str, Callable] = {
-    ".tar.gz": TarGzipHandler,
-    ".zip": ZipHandler
-}
+# ARCHIVE2HANDLER: Dict[str, Callable] = {
+#     ".tar.gz": TarGzipHandler,
+#     ".zip": ZipHandler
+# }
 
 COMPRESS2OPEN: Dict[str, Callable] = {
     ".gz": partial(gzip.open, mode='rt'),
@@ -126,74 +220,103 @@ class KyotoReader:
                  use_pas_tag: bool = False,
                  knp_ext: str = '.knp',
                  pickle_ext: str = '.pkl',
-                 recursive: bool = False,
+                 # recursive: bool = False,
                  mp_backend: Optional[str] = 'multiprocessing',
                  n_jobs: int = -1,
                  did_from_sid: bool = True,
-                 archive2handler: Dict[str, ArchiveHandler] = ARCHIVE2HANDLER,
-                 compress2open: Dict[str, Callable] = COMPRESS2OPEN
+                 # archive2handler: Dict[str, ArchiveHandler] = ARCHIVE2HANDLER,
+                 # compress2open: Dict[str, Callable] = COMPRESS2OPEN
                  ) -> None:
         if not (isinstance(source, Path) or isinstance(source, str)):
             raise TypeError(
                 f"document source must be Path or str type, but got '{type(source)}' type")
         source = Path(source)
-        source_suffix = "".join(source.suffixes)
-        self.archive_handler = None
+        source_suffix = ''.join(source.suffixes)
+        # self.archive_handler = None
 
-        if source.is_dir():
-            # Yields all allowed single-file extension (e.g. .knp, .pkl.gz)
-            allowed_single_file_ext = list(
-                "".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(compress2open.keys()))))
-            logger.info(
-                f'got directory path, files in the directory is treated as source files')
-            file_paths: List[Path] = []
-            for ext in allowed_single_file_ext:
-                file_paths += sorted(source.glob(
-                    f'**/*{ext}' if recursive else f'*{ext}'))
-        # If source file is an archive, build handler
-        elif source_suffix in archive2handler:
-            logger.info(
-                f'got compressed file, files in the compressed file are treated as source files')
-            # Compressed files are prohibited.
+        if FileCollectionHandler.is_supported_path(source):
+            self.handler = FileCollectionHandler(source)
             allowed_single_file_ext = (knp_ext, pickle_ext)
-            self.archive_handler = archive2handler[source_suffix](source)
-            with self.archive_handler.open() as archive:
-                file_paths = sorted(
-                    Path(x) for x in self.archive_handler.get_member_names(archive)
-                    if "".join(Path(x).suffixes) in allowed_single_file_ext
+            # file_paths = sorted(Path(p) for p in self.handler.list_contents() if ''.join(Path(p).suffixes) in allowed_single_file_ext)
+            self.did2pkls = {path.stem: path for path in self.handler.members if pickle_ext in path.suffixes}
+            # get did2knps
+            with self.handler.open() as collection:
+                args_iter = (
+                    (self, path, did_from_sid, collection)
+                    for path in self.handler.members if knp_ext in path.suffixes
                 )
+                # ここで handler 用の read_knp を呼びたい
+                rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
+            self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
         else:
-            logger.info(
-                f'got file path, this file is treated as a source knp file')
-            file_paths = [source]
-        self.did2pkls: Dict[str, Path] = {
-            path.stem: path for path in file_paths if pickle_ext in path.suffixes}
+            assert source.is_file() is True
+            self.did2pkls = {path.stem: path for path in [source] if pickle_ext in path.suffixes}
+            rets: List[Dict[str, str]] = [self.read_knp(source, did_from_sid)]
+            self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
+
+        # if source.is_dir():
+        #     # Yields all allowed single-file extension (e.g. .knp, .pkl.gz)
+        #     allowed_single_file_ext = list(
+        #         "".join(x) for x in product((knp_ext, pickle_ext), (("",) + tuple(compress2open.keys()))))
+        #     logger.info(
+        #         f'got directory path, files in the directory is treated as source files')
+        #     file_paths: List[Path] = []
+        #     for ext in allowed_single_file_ext:
+        #         file_paths += sorted(source.glob(
+        #             f'**/*{ext}' if recursive else f'*{ext}'))
+        # # If source file is an archive, build handler
+        # elif source_suffix in archive2handler:
+        #     logger.info(
+        #         f'got compressed file, files in the compressed file are treated as source files')
+        #     # Compressed files are prohibited.
+        #     allowed_single_file_ext = (knp_ext, pickle_ext)
+        #     self.archive_handler = archive2handler[source_suffix](source)
+        #     with self.archive_handler.open() as archive:
+        #         file_paths = sorted(
+        #             Path(x) for x in self.archive_handler.get_member_names(archive)
+        #             if "".join(Path(x).suffixes) in allowed_single_file_ext
+        #         )
+        # else:
+        #     logger.info(
+        #         f'got file path, this file is treated as a source knp file')
+        #     file_paths = [source]
+        # self.did2pkls: Dict[str, Path] = {
+        #     path.stem: path for path in file_paths if pickle_ext in path.suffixes}
         self.mp_backend: Optional[str] = mp_backend if n_jobs != 0 else None
-        if self.mp_backend is not None and self.archive_handler is not None:
+        if self.mp_backend is not None and self.handler is not None:
             logger.info(
                 "Multiprocessing with archive is too slow, so it is disabled")
             logger.info(
                 "Run without multiprocessing can be relatively slow, so please consider unarchive the archive file")
             self.mp_backend = None
         self.n_jobs: int = n_jobs
+        # if FileCollectionHandler.is_supported_path(source):
+        #     with self.handler.open() as collection:
+        #         args_iter = (
+        #             (self, path, did_from_sid, collection)
+        #             for path in self.handler.members if knp_ext in path.suffixes
+        #         )
+        #         rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
+        # else:
+        #     rets: List[Dict[str, str]] = [self.read_knp(source, did_from_sid)]
 
         # This must be set before read_knp is called.
-        self.compress2open = compress2open
-        if self.archive_handler is not None:
-            with self.archive_handler.open() as archive:
-                args_iter = (
-                    (self, path, did_from_sid, archive)
-                    for path in file_paths if knp_ext in path.suffixes
-                )
-                rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend,
-                                                              self.n_jobs)
-        else:
-            args_iter = ((self, path, did_from_sid)
-                         for path in file_paths if knp_ext in path.suffixes)
-            rets: List[Dict[str, str]] = self._mp_wrapper(
-                KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
+        # self.compress2open = compress2open
+        # if self.archive_handler is not None:
+        #     with self.archive_handler.open() as archive:
+        #         args_iter = (
+        #             (self, path, did_from_sid, archive)
+        #             for path in file_paths if knp_ext in path.suffixes
+        #         )
+        #         rets: List[Dict[str, str]] = self._mp_wrapper(KyotoReader.read_knp, args_iter, self.mp_backend,
+        #                                                       self.n_jobs)
+        # else:
+        #     args_iter = ((self, path, did_from_sid, None)
+        #                  for path in file_paths if knp_ext in path.suffixes)
+        #     rets: List[Dict[str, str]] = self._mp_wrapper(
+        #         KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs)
 
-        self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
+        # self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
         self.doc_ids: List[str] = sorted(
             set(self.did2knps.keys()) | set(self.did2pkls.keys()))
 
@@ -251,20 +374,26 @@ class KyotoReader:
                 logger.warning(f'empty file found and skipped: {path}')
 
         if archive is not None:
-            with self.archive_handler.open_member(archive, str(path)) as f:
-                text = f.read().decode("utf-8")
-                _read_knp(text.split("\n"))
-        else:
-            if any(key in path.suffixes for key in self.compress2open):
-                compress = set(path.suffixes) & set(self.compress2open.keys())
-                assert len(compress) == 1
-                _open = self.compress2open[compress.pop()]
-            else:
-                _open = open
-            with _open(path) as f:
-                _read_knp(f.readlines())
+            with self.handler.open_member(archive, path) as f:
+                _read_knp(f)  # ここで f は .knp.gz とかかもしれないのでやはり archive と directory は分けたほうが良さそう
+        # if archive is not None:
+        #     with self.archive_handler.open_member(archive, str(path)) as f:
+        #         text = f.read().decode("utf-8")
+        #         _read_knp(text.split("\n"))
+        # else:
+        #     if any(key in path.suffixes for key in self.compress2open):
+        #         compress = set(path.suffixes) & set(self.compress2open.keys())
+        #         assert len(compress) == 1
+        #         _open = self.compress2open[compress.pop()]
+        #     else:
+        #         _open = open
+        #     with _open(path) as f:
+        #         _read_knp(f.readlines())
 
         return did2knps
+
+    def open_single_file(self, path):
+        pass
 
     @staticmethod
     def _get_targets(input_: Optional[Collection],
