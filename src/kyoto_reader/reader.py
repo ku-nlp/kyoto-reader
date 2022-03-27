@@ -29,8 +29,11 @@ class ArchiveType(Enum):
     ZIP = '.zip'
 
 
+ArchiveFile = Union[tarfile.TarFile, zipfile.ZipFile]
+
+
 class ArchiveHandler:
-    def __init__(self, path: Path):
+    def __init__(self, path: Path) -> None:
         self.path: Path = path
         self.type: ArchiveType = self._get_type(path)
         self.members: List[str] = self._list_members()
@@ -56,7 +59,7 @@ class ArchiveHandler:
             raise ValueError(f'Unsupported archive type: {self.type}')
 
     @contextmanager
-    def open(self) -> Union[zipfile.ZipFile, tarfile.TarFile]:
+    def open(self) -> ArchiveFile:
         file = None
         try:
             if self.type == ArchiveType.TAR_GZ:
@@ -70,7 +73,7 @@ class ArchiveHandler:
             hasattr(file, 'close') and file.close()
 
     @contextmanager
-    def open_member(self, archive: Union[zipfile.ZipFile, tarfile.TarFile], member: str) -> BinaryIO:
+    def open_member(self, archive: ArchiveFile, member: str) -> BinaryIO:
         file = None
         try:
             if self.type == ArchiveType.TAR_GZ:
@@ -96,8 +99,8 @@ class FileType(Enum):
 
 
 class FileHandler:
-    def __init__(self, path: Path):
-        self.path = path
+    def __init__(self, path: Path) -> None:
+        self.path: Path = path
         self.type: FileType = self._get_type(path)
 
     @property
@@ -113,7 +116,7 @@ class FileHandler:
         return FileType.UNCOMPRESSED
 
     @contextmanager
-    def open(self):
+    def open(self) -> TextIO:
         file = None
         try:
             if self.type == FileType.GZ:
@@ -126,7 +129,7 @@ class FileHandler:
         finally:
             hasattr(file, 'close') and file.close()
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self.path < other.path
 
 
@@ -205,25 +208,21 @@ class KyotoReader:
             )
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
 
-        self.doc_ids: List[str] = sorted(
-            set(self.did2knps.keys()) | set(self.did2pkls.keys()))
+        self.doc_ids: List[str] = sorted(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
 
-        self.target_cases: Collection[str] = self._get_targets(
-            target_cases, ALL_CASES, 'case')
-        self.target_corefs: Collection[str] = self._get_targets(
-            target_corefs, ALL_COREFS, 'coref')
+        self.target_cases: Collection[str] = self._get_targets(target_cases, ALL_CASES, 'case')
+        self.target_corefs: Collection[str] = self._get_targets(target_corefs, ALL_COREFS, 'coref')
         self.relax_cases: bool = relax_cases
         self.extract_nes: bool = extract_nes
         self.use_pas_tag: bool = use_pas_tag
         self.knp_ext: str = knp_ext
         self.pickle_ext: str = pickle_ext
 
-    def read_knp(
-        self,
-        file: FileHandler,
-        did_from_sid: bool,
-        archive: Optional[Union[zipfile.ZipFile, tarfile.TarFile]] = None,
-    ) -> Dict[str, str]:
+    def read_knp(self,
+                 file: FileHandler,
+                 did_from_sid: bool,
+                 archive: Optional[ArchiveFile] = None,
+                 ) -> Dict[str, str]:
         """Read KNP format file that is located at the specified path. The file can contain multiple documents.
 
         Args:
@@ -292,7 +291,7 @@ class KyotoReader:
     def process_document(
         self,
         doc_id: str,
-        archive: Optional[Union[zipfile.ZipFile, tarfile.TarFile]] = None
+        archive: Optional[ArchiveFile] = None
     ) -> Optional[Document]:
         """Process one document following the given document ID.
 
