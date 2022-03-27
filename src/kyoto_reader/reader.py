@@ -22,9 +22,7 @@ logger.setLevel(logging.WARNING)
 
 
 class ArchiveType(Enum):
-    """
-    Enum for file collection types.
-    """
+    """Enum for file collection types."""
     TAR_GZ = '.tar.gz'
     ZIP = '.zip'
 
