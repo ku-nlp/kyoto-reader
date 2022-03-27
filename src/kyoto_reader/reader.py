@@ -165,6 +165,12 @@ class KyotoReader:
         mp_backend (Optional[str]): 'multiprocessing', 'joblib', or None (default: 'multiprocessing')
         n_jobs (int): 文書を読み込む処理の並列数 (default: -1(=コア数))
         did_from_sid (bool): 文書IDを文書中のS-IDから決定する (default: True)
+
+    Note:
+        サポートされる入力パス (i.e. `source` argument)
+        - 単一ファイル (.knp, .knp.gz, .pkl, .pkl.gz)
+        - 単一ファイルを含むディレクトリ
+        - 単一非圧縮ファイルを含むアーカイブファイル (.tar.gz, .zip)
     """
 
     def __init__(self,
