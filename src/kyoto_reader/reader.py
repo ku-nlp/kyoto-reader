@@ -20,19 +20,6 @@ from .document import Document
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-# 実装方針
-"""
-dir と archive は分ける
-.gz.zip は無理なのでサポートしない
-または予め archive は tmp dir に吐くとか
-サポートするのは以下
-- archive
-- directory
-- compressed files in directory
-- file
-- compressed file
-"""
-
 
 class ArchiveType(Enum):
     """
@@ -143,11 +130,6 @@ class FileHandler:
         return self.path < other.path
 
 
-# COMPRESS2OPEN: Dict[str, Callable] = {
-#     ".gz": partial(gzip.open, mode='rt'),
-# }
-
-
 class KyotoReader:
     """A class to manage a set of corpus documents.
     Compressed file is supported.
@@ -182,12 +164,9 @@ class KyotoReader:
                  use_pas_tag: bool = False,
                  knp_ext: str = '.knp',
                  pickle_ext: str = '.pkl',
-                 # recursive: bool = False,
                  mp_backend: Optional[str] = 'multiprocessing',
                  n_jobs: int = -1,
                  did_from_sid: bool = True,
-                 # archive2handler: Dict[str, ArchiveHandler] = ARCHIVE2HANDLER,
-                 # compress2open: Dict[str, Callable] = COMPRESS2OPEN
                  ) -> None:
         if not (isinstance(source, Path) or isinstance(source, str)):
             raise TypeError(f"document source must be Path or str type, but got '{type(source)}' type")
