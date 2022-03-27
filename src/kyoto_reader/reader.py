@@ -186,7 +186,7 @@ class KyotoReader:
             assert source.is_file() is True
             file_paths: List[FileHandler] = [FileHandler(source)]
 
-        self.did2pkls = {path: path for path in file_paths if path.content_basename.endswith(pickle_ext)}
+        self.did2pkls = {file.path.stem: file for file in file_paths if file.content_basename.endswith(pickle_ext)}
 
         self.mp_backend: Optional[str] = mp_backend if n_jobs != 0 else None
         if self.mp_backend is not None and self.archive_handler is not None:
@@ -199,7 +199,7 @@ class KyotoReader:
 
         with (self.archive_handler.open() if self.archive_handler else nullcontext()) as archive:
             args_iter = (
-                (self, path, did_from_sid, archive) for path in file_paths if path.content_basename.endswith(knp_ext)
+                (self, file, did_from_sid, archive) for file in file_paths if file.content_basename.endswith(knp_ext)
             )
             rets: List[Dict[str, str]] = self._mp_wrapper(
                 KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs
