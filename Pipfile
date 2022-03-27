@@ -13,6 +13,7 @@ sphinx-autodoc-typehints = "*"
 recommonmark = "*"
 twine = "*"
 sphinx-rtd-theme = "*"
+autopep8 = "*"
 
 [packages]
 
