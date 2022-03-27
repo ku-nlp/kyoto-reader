@@ -17,6 +17,7 @@ class Mention(BasePhrase):
         eids (set): Entity IDs.
         eids_unc (set): Uncertain entity IDs. "Uncertain" means the mention is annotated with "≒".
     """
+
     def __init__(self, bp: BasePhrase):
         super().__init__(bp.tag, bp.dmids[0], bp.dtid, bp.sid, bp.doc_id, parent=bp.parent, children=bp.children)
         self.eids: Set[int] = set()
@@ -64,6 +65,7 @@ class Entity:
         taigen (bool, optional): Whether this entity is 体言 or not.
         yougen (bool, optional): Whether this entity is 用言 or not.
     """
+
     def __init__(self, eid: int, exophor: Optional[str] = None):
         self.eid: int = eid
         self.exophor: Optional[str] = exophor
