@@ -44,9 +44,9 @@ class ArchiveType(Enum):
 
 class ArchiveHandler:
     def __init__(self, path: Path):
-        self.path = path
-        self.type = self._get_type(path)
-        self.members = self._list_members()
+        self.path: Path = path
+        self.type: ArchiveType = self._get_type(path)
+        self.members: List[str] = self._list_members()
 
     @staticmethod
     def _get_type(path: Path) -> ArchiveType:
@@ -58,13 +58,13 @@ class ArchiveHandler:
         else:
             raise ValueError(f'Unsupported archive type: {path}')
 
-    def _list_members(self) -> List[Path]:
+    def _list_members(self) -> List[str]:
         if self.type == ArchiveType.TAR_GZ:
             with tarfile.open(self.path, mode='r') as f:
-                return [Path(p) for p in f.getnames()]
+                return f.getnames()
         elif self.type == ArchiveType.ZIP:
             with zipfile.ZipFile(self.path, mode='r') as f:
-                return [Path(p) for p in f.namelist()]
+                return f.namelist()
         else:
             raise ValueError(f'Unsupported archive type: {self.type}')
 
@@ -99,76 +99,6 @@ class ArchiveHandler:
     @classmethod
     def is_supported_path(cls, path: Path) -> bool:
         return any(str(path).endswith(t.value) for t in ArchiveType)
-
-
-# class ArchiveHandler:
-#     """Base class for handling archive.
-#     Each subclass should correspond with one extension (e.g. .zip).
-#     """
-#
-#     def __init__(self, archive_path: Path):
-#         self.archive_path = archive_path
-#
-#     @abstractmethod
-#     def _open(self, path: Path) -> Any:
-#         """Return a file-like object for the given path."""
-#         raise NotImplementedError
-#
-#     @contextmanager
-#     def open(self):
-#         """Main function to open the archive.
-#         Specific open function for each extension should be implemented in a subclass.
-#         """
-#         f = self._open(self.archive_path)
-#         try:
-#             yield f
-#         finally:
-#             f.close()
-#
-#     @abstractmethod
-#     def get_member_names(self, f: Any) -> List[str]:
-#         """Get all file names in archive."""
-#         raise NotImplementedError
-#
-#     @abstractmethod
-#     def open_member(self, f: Any, path: str):
-#         """Extract file object from archive"""
-#         raise NotImplementedError
-#
-#
-# class TarGzipHandler(ArchiveHandler):
-#     def _open(self, path: Path) -> tarfile.TarFile:
-#         return tarfile.open(path)
-#
-#     def get_member_names(self, f: tarfile.TarFile) -> List[str]:
-#         return getattr(f, "getnames")()
-#
-#     @contextmanager
-#     def open_member(self, f: tarfile.TarFile, path: str):
-#         bytes = f.extractfile(path)
-#         yield bytes
-#
-#
-# class ZipHandler(ArchiveHandler):
-#     def _open(self, path: Path) -> zipfile.ZipFile:
-#         return zipfile.ZipFile(path)
-#
-#     def get_member_names(self, f: zipfile.ZipFile) -> List[str]:
-#         return getattr(f, "namelist")()
-#
-#     @contextmanager
-#     def open_member(self, f: zipfile.ZipFile, path: str):
-#         g = f.open(path)
-#         try:
-#             yield g
-#         finally:
-#             g.close()
-
-
-# ARCHIVE2HANDLER: Dict[str, Callable] = {
-#     ".tar.gz": TarGzipHandler,
-#     ".zip": ZipHandler
-# }
 
 
 class FileType(Enum):
@@ -264,7 +194,7 @@ class KyotoReader:
         elif ArchiveHandler.is_supported_path(source):
             logger.info(f'got an archive file path, files in the archive are treated as source files')
             self.archive_handler = ArchiveHandler(source)
-            file_paths: List[FileHandler] = sorted(FileHandler(p) for p in self.archive_handler.members)
+            file_paths: List[FileHandler] = sorted(FileHandler(Path(p)) for p in self.archive_handler.members)
         else:
             logger.info(f'got a single file path, this file is treated as a source file')
             assert source.is_file() is True
