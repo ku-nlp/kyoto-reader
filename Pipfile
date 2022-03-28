@@ -15,6 +15,7 @@ recommonmark = "*"
 twine = "*"
 sphinx-rtd-theme = "*"
 autopep8 = "*"
+typing-extensions = "*"
 
 [packages]
 
