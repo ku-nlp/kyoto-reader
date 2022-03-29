@@ -18,6 +18,7 @@ class BasePhrase:
         parent (Optional[BasePhrase]): Dependency parent.
         children (List[BasePhrase]): Dependency children.
     """
+
     def __init__(self,
                  tag: Tag,
                  dmid_offset: int,

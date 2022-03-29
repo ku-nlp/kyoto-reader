@@ -18,6 +18,7 @@ class Sentence:
         doc_id (str): The document ID of this sentence.
         bps (List[BasePhrase]): Base phrases in this sentence.
     """
+
     def __init__(self,
                  knp_string: str,
                  dtid_offset: int,

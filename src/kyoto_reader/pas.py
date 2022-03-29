@@ -15,6 +15,7 @@ Predicate = BasePhrase
 
 class BaseArgument:
     """A base class for all kinds of arguments"""
+
     def __init__(self, dep_type: str, mode: str):
         self.dep_type: str = dep_type
         self.mode: str = mode
@@ -83,6 +84,7 @@ class SpecialArgument(BaseArgument):
         eid (int): 外界照応詞のエンティティID
         mode (str): モード
     """
+
     def __init__(self, exophor: str, eid: int, mode: str):
         self.eid = eid
         dep_type = 'exo'
