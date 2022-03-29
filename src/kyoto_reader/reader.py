@@ -226,7 +226,7 @@ class KyotoReader:
         Args:
             file (FileHandler): A file handler indicating a path to a KNP format file.
             did_from_sid (bool): If True, determine the document ID from the sentence ID in the document.
-            archive (Optional[Union[zipfile.ZipFile, tarfile.TarFile]]): An archive to read the document from.
+            archive (Optional[ArchiveFile]): An archive to read the document from.
 
         Returns:
             Dict[str, str]: A mapping from a document ID to a KNP format string.
@@ -295,7 +295,7 @@ class KyotoReader:
 
         Args:
             doc_id (str): An ID of a document to process.
-            archive (Optional[Union[zipfile.ZipFile, tarfile.TarFile]]): An archive to read the document from.
+            archive (Optional[ArchiveFile]): An archive to read the document from.
         """
         if doc_id in self.did2pkls:
             if archive is not None:
