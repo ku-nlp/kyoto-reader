@@ -29,5 +29,5 @@ $ pip install kyoto-reader
 
 ## Authors/Contact
 
-京都大学 黒橋・村脇研究室 (contact **at** nlp.ist.i.kyoto-u.ac.jp)
+京都大学 黒橋・褚・村脇研究室 (contact **at** nlp.ist.i.kyoto-u.ac.jp)
 - Nobuhiro Ueda <ueda **at** nlp.ist.i.kyoto-u.ac.jp>
