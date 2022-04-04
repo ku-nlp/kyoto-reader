@@ -1,18 +1,17 @@
 import gzip
 import io
 import logging
+import os
 import pickle
 import tarfile
 import zipfile
 from collections import ChainMap
+from concurrent import futures
 from contextlib import contextmanager, nullcontext
 from enum import Enum
-from itertools import repeat
-from multiprocessing import Pool
+from functools import partial
 from pathlib import Path
-from typing import List, Dict, Optional, Union, Callable, Iterable, Collection, Any, BinaryIO, TextIO
-
-from joblib import Parallel, delayed
+from typing import List, Dict, Optional, Union, Iterable, Collection, Any, BinaryIO, TextIO
 
 from .constants import ALL_CASES, ALL_COREFS, SID_PTN, SID_PTN_KWDLC
 from .document import Document
@@ -145,7 +144,6 @@ class KyotoReader:
         knp_ext (str): KWDLC または KC ファイルの拡張子 (default: knp)
         pickle_ext (str): Document を pickle 形式で読む場合の拡張子 (default: pkl)
         use_pas_tag (bool): <rel>タグからではなく、<述語項構造:>タグから PAS を読むかどうか (default: False)
-        mp_backend (Optional[str]): 'multiprocessing', 'joblib', or None (default: 'multiprocessing')
         n_jobs (int): 文書を読み込む処理の並列数 (default: -1(=コア数))
         did_from_sid (bool): 文書IDを文書中のS-IDから決定する (default: True)
 
@@ -165,7 +163,6 @@ class KyotoReader:
                  use_pas_tag: bool = False,
                  knp_ext: str = '.knp',
                  pickle_ext: str = '.pkl',
-                 mp_backend: Optional[str] = 'multiprocessing',
                  n_jobs: int = -1,
                  did_from_sid: bool = True,
                  ) -> None:
@@ -187,23 +184,28 @@ class KyotoReader:
             file_paths: List[FileHandler] = [FileHandler(source)]
 
         self.did2pkls = {file.path.stem: file for file in file_paths if file.content_basename.endswith(pickle_ext)}
-
-        self.mp_backend: Optional[str] = mp_backend if n_jobs != 0 else None
-        if self.mp_backend is not None and self.archive_handler is not None:
+        if n_jobs == -1:
+            self.n_jobs = os.cpu_count()
+        elif n_jobs >= 0:
+            self.n_jobs = n_jobs
+        else:
+            raise ValueError(f'n_jobs must be >= 0 or -1, but got {n_jobs}')
+        if self.n_jobs > 0 and self.archive_handler is not None:
             logger.info('Multiprocessing with archive is too slow, so it is disabled')
             logger.info(
                 'Running without multiprocessing can be relatively slow, consider unarchiving the input file in advance'
             )
-            self.mp_backend = None
-        self.n_jobs: int = n_jobs
+            self.n_jobs = 0
 
         with (self.archive_handler.open() if self.archive_handler else nullcontext()) as archive:
             args_iter = (
                 (self, file, did_from_sid, archive) for file in file_paths if file.content_basename.endswith(knp_ext)
             )
-            rets: List[Dict[str, str]] = self._mp_wrapper(
-                KyotoReader.read_knp, args_iter, self.mp_backend, self.n_jobs
-            )
+            if self.n_jobs > 0:
+                with futures.ProcessPoolExecutor(max_workers=self.n_jobs) as executor:
+                    rets: Iterable[Dict[str, str]] = executor.map(KyotoReader.read_knp, *zip(*args_iter))
+            else:
+                rets: List[Dict[str, str]] = [KyotoReader.read_knp(*args) for args in args_iter]
         self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
 
         self.doc_ids: List[str] = sorted(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
@@ -243,7 +245,7 @@ class KyotoReader:
     def _read_knp(file: TextIO,
                   path: Path,
                   did_from_sid: bool
-                  ):
+                  ) -> Dict[str, str]:
         buff = ''
         did = sid = None
         did2knps = {}
@@ -286,11 +288,10 @@ class KyotoReader:
             target.append(item)
         return target
 
-    def process_document(
-        self,
-        doc_id: str,
-        archive: Optional[ArchiveFile] = None
-    ) -> Optional[Document]:
+    def process_document(self,
+                         doc_id: str,
+                         archive: Optional[ArchiveFile] = None
+                         ) -> Optional[Document]:
         """Process one document following the given document ID.
 
         Args:
@@ -328,11 +329,20 @@ class KyotoReader:
         """
         if n_jobs is None:
             n_jobs = self.n_jobs
+        elif n_jobs == -1:
+            n_jobs = os.cpu_count()
+        elif n_jobs < -1:
+            raise ValueError(f'n_jobs must be >= 0 or -1, but got {n_jobs}')
         if self.archive_handler is not None:
-            assert self.mp_backend is None
+            assert n_jobs == 0
         with (self.archive_handler.open() if self.archive_handler else nullcontext()) as archive:
-            args_iter = zip(repeat(self), doc_ids, repeat(archive))
-            return self._mp_wrapper(KyotoReader.process_document, args_iter, self.mp_backend, n_jobs)
+            process_document = partial(KyotoReader.process_document, self, archive=archive)
+            if n_jobs > 0:
+                with futures.ProcessPoolExecutor(max_workers=n_jobs) as executor:
+                    rets: Iterable[Optional[Document]] = executor.map(process_document, doc_ids)
+            else:
+                rets: Iterable[Optional[Document]] = map(process_document, doc_ids)
+            return list(rets)
 
     def process_all_documents(self,
                               n_jobs: Optional[int] = None,
@@ -342,34 +352,7 @@ class KyotoReader:
         Args:
             n_jobs (int): The number of processes spawned to finish this task. (default: inherit from self)
         """
-        if n_jobs is None:
-            n_jobs = self.n_jobs
         return self.process_documents(self.doc_ids, n_jobs)
-
-    @staticmethod
-    def _mp_wrapper(func: Callable, args: Iterable[tuple], backend: Optional[str], n_jobs: int) -> list:
-        """Call func with given args in multiprocess.
-        Joblib or multiprocessing are used for multiprocessing backend.
-        If None is specified as backend, do not perform multiprocessing.
-
-        Args:
-            func (Callable): A function to be called.
-            args (List[tuple]): List of arguments for the function.
-            backend (Optional[str]): 'multiprocessing', 'joblib', or None (default: 'multiprocessing')
-
-        Returns:
-            list: The output of func for each arguments.
-        """
-        if backend == 'multiprocessing':
-            with Pool(n_jobs if n_jobs >= 0 else None) as pool:
-                return list(pool.starmap(func, args))
-        elif backend == 'joblib':
-            parallel = Parallel(n_jobs=n_jobs)
-            return parallel([delayed(func)(*arg) for arg in args])
-        elif backend is None:
-            return [func(*arg) for arg in args]
-        else:
-            raise NotImplementedError
 
     def __len__(self):
         return len(self.doc_ids)

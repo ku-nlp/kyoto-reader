@@ -417,11 +417,10 @@ def test_zip(fixture_kyoto_reader: KyotoReader):
     zip_reader = KyotoReader(data_dir / 'compress_knp/knp.zip',
                              target_cases=ALL_CASES,
                              target_corefs=ALL_COREFS,
-                             mp_backend=None)
+                             n_jobs=0)
     assert fixture_kyoto_reader.doc_ids == zip_reader.doc_ids
     assert all(
-        fixture_kyoto_reader.process_document(
-            doc_id) == zip_reader.process_document(doc_id)
+        fixture_kyoto_reader.process_document(doc_id) == zip_reader.process_document(doc_id)
         for doc_id in fixture_kyoto_reader.doc_ids
     )
 
@@ -431,11 +430,10 @@ def test_tar_gzip(fixture_kyoto_reader: KyotoReader):
     tar_gzip_reader = KyotoReader(data_dir / 'compress_knp/knp.tar.gz',
                                   target_cases=ALL_CASES,
                                   target_corefs=ALL_COREFS,
-                                  mp_backend=None)
+                                  n_jobs=0)
     assert fixture_kyoto_reader.doc_ids == tar_gzip_reader.doc_ids
     assert all(
-        fixture_kyoto_reader.process_document(
-            doc_id) == tar_gzip_reader.process_document(doc_id)
+        fixture_kyoto_reader.process_document(doc_id) == tar_gzip_reader.process_document(doc_id)
         for doc_id in fixture_kyoto_reader.doc_ids
     )
 
@@ -445,10 +443,14 @@ def test_gzip(fixture_kyoto_reader: KyotoReader):
     gzip_reader = KyotoReader(data_dir / 'gzip_knp',
                               target_cases=ALL_CASES,
                               target_corefs=ALL_COREFS,
-                              mp_backend=None)
+                              n_jobs=0)
     assert fixture_kyoto_reader.doc_ids == gzip_reader.doc_ids
     assert all(
-        fixture_kyoto_reader.process_document(
-            doc_id) == gzip_reader.process_document(doc_id)
+        fixture_kyoto_reader.process_document(doc_id) == gzip_reader.process_document(doc_id)
         for doc_id in fixture_kyoto_reader.doc_ids
     )
+
+
+def test_process_documents(fixture_kyoto_reader: KyotoReader):
+    documents = fixture_kyoto_reader.process_all_documents()
+    assert [doc.doc_id for doc in documents] == fixture_kyoto_reader.doc_ids
