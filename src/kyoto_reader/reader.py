@@ -114,13 +114,13 @@ class FileHandler:
         return FileType.UNCOMPRESSED
 
     @contextmanager
-    def open(self) -> TextIO:
+    def open(self, *args, **kwargs) -> TextIO:
         file = None
         try:
             if self.type == FileType.GZ:
-                file = gzip.open(self.path, mode='rt')
+                file = gzip.open(self.path, *args, **kwargs)
             elif self.type == FileType.UNCOMPRESSED:
-                file = self.path.open(mode='rt')
+                file = self.path.open(*args, **kwargs)
             else:
                 raise ValueError(f'Unsupported collection type: {self.type}')
             yield file
@@ -236,7 +236,7 @@ class KyotoReader:
             with self.archive_handler.open_member(archive, str(file.path)) as f:
                 return self._read_knp(io.TextIOWrapper(f, encoding='utf-8'), file.path, did_from_sid)
         else:
-            with file.open() as f:
+            with file.open(mode='rt') as f:
                 return self._read_knp(f, file.path, did_from_sid)
 
     @staticmethod
