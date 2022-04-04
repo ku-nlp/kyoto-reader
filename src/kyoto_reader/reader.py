@@ -144,7 +144,7 @@ class KyotoReader:
         knp_ext (str): KWDLC または KC ファイルの拡張子 (default: knp)
         pickle_ext (str): Document を pickle 形式で読む場合の拡張子 (default: pkl)
         use_pas_tag (bool): <rel>タグからではなく、<述語項構造:>タグから PAS を読むかどうか (default: False)
-        n_jobs (int): 文書を読み込む処理の並列数 (default: -1(=コア数))
+        n_jobs (int): 文書を読み込む処理の並列数。0: 並列処理なし、-1: コア数 (default: -1)
         did_from_sid (bool): 文書IDを文書中のS-IDから決定する (default: True)
 
     Note:
