@@ -178,10 +178,11 @@ class KyotoReader:
             logger.info(f'got an archive file path, files in the archive are treated as source files')
             self.archive_handler = ArchiveHandler(source)
             file_paths: List[FileHandler] = sorted(FileHandler(Path(p)) for p in self.archive_handler.members)
-        else:
+        elif source.is_file():
             logger.info(f'got a single file path, this file is treated as a source file')
-            assert source.is_file() is True
             file_paths: List[FileHandler] = [FileHandler(source)]
+        else:
+            raise ValueError(f'document source: {source} not found')
 
         self.did2pkls = {file.path.stem: file for file in file_paths if file.content_basename.endswith(pickle_ext)}
         if n_jobs == -1:
