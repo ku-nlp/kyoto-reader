@@ -184,6 +184,9 @@ class KyotoReader:
         else:
             raise ValueError(f'document source: {source} not found')
 
+        # If True, determine the document ID from the sentence ID in the document.
+        self.did_from_sid: bool = did_from_sid
+
         self.did2pkls = {file.path.stem: file for file in file_paths if file.content_basename.endswith(pickle_ext)}
         if n_jobs == -1:
             self.n_jobs = os.cpu_count()
@@ -198,18 +201,25 @@ class KyotoReader:
             )
             self.n_jobs = 0
 
-        with (self.archive_handler.open() if self.archive_handler else nullcontext()) as archive:
-            args_iter = (
-                (self, file, did_from_sid, archive) for file in file_paths if file.content_basename.endswith(knp_ext)
+        self.did2knps: Dict[str, str] = {}
+        self.did2file: Dict[str, FileHandler] = {}
+        if self.did_from_sid is True:
+            with (self.archive_handler.open() if self.archive_handler else nullcontext()) as archive:
+                args_iter = (
+                    (self, file, archive) for file in file_paths if file.content_basename.endswith(knp_ext)
+                )
+                if self.n_jobs > 0:
+                    with futures.ProcessPoolExecutor(max_workers=self.n_jobs) as executor:
+                        rets: Iterable[Dict[str, str]] = executor.map(KyotoReader.read_knp, *zip(*args_iter))
+                else:
+                    rets: List[Dict[str, str]] = [KyotoReader.read_knp(*args) for args in args_iter]
+            self.did2knps.update(dict(ChainMap(*rets)))
+        else:
+            self.did2file.update(
+                {file.path.stem: file for file in file_paths if file.content_basename.endswith(knp_ext)}
             )
-            if self.n_jobs > 0:
-                with futures.ProcessPoolExecutor(max_workers=self.n_jobs) as executor:
-                    rets: Iterable[Dict[str, str]] = executor.map(KyotoReader.read_knp, *zip(*args_iter))
-            else:
-                rets: List[Dict[str, str]] = [KyotoReader.read_knp(*args) for args in args_iter]
-        self.did2knps: Dict[str, str] = dict(ChainMap(*rets))
 
-        self.doc_ids: List[str] = sorted(set(self.did2knps.keys()) | set(self.did2pkls.keys()))
+        self.doc_ids: List[str] = sorted({*self.did2knps.keys(), *self.did2pkls.keys(), *self.did2file.keys()})
 
         self.target_cases: Collection[str] = self._get_targets(target_cases, ALL_CASES, 'case')
         self.target_corefs: Collection[str] = self._get_targets(target_corefs, ALL_COREFS, 'coref')
@@ -219,16 +229,32 @@ class KyotoReader:
         self.knp_ext: str = knp_ext
         self.pickle_ext: str = pickle_ext
 
+    def get_knp(self, did: str) -> str:
+        if did in self.did2knps:
+            return self.did2knps[did]
+        with (self.archive_handler.open() if self.archive_handler else nullcontext()) as archive:
+            if did in self.did2file:
+                self.did2knps.update(self.read_knp(self.did2file[did], archive))
+                return self.did2knps[did]
+            if did in self.did2pkls:
+                if archive is not None:
+                    with self.archive_handler.open_member(archive, str(self.did2pkls[did].path)) as f:
+                        document = pickle.load(f)
+                else:
+                    with self.did2pkls[did].open(mode='rb') as f:
+                        document = pickle.load(f)
+                self.did2knps[did] = document.knp_string
+                return self.did2knps[did]
+        raise ValueError(f'document id: {did} not found')
+
     def read_knp(self,
                  file: FileHandler,
-                 did_from_sid: bool,
                  archive: Optional[ArchiveFile] = None,
                  ) -> Dict[str, str]:
         """Read KNP format file that is located at the specified path. The file can contain multiple documents.
 
         Args:
             file (FileHandler): A file handler indicating a path to a KNP format file.
-            did_from_sid (bool): If True, determine the document ID from the sentence ID in the document.
             archive (Optional[ArchiveFile]): An archive to read the document from.
 
         Returns:
@@ -237,10 +263,10 @@ class KyotoReader:
 
         if archive is not None:
             with self.archive_handler.open_member(archive, str(file.path)) as f:
-                return self._read_knp(io.TextIOWrapper(f, encoding='utf-8'), file.path, did_from_sid)
+                return self._read_knp(io.TextIOWrapper(f, encoding='utf-8'), file.path, did_from_sid=self.did_from_sid)
         else:
             with file.open(mode='rt') as f:
-                return self._read_knp(f, file.path, did_from_sid)
+                return self._read_knp(f, file.path, did_from_sid=self.did_from_sid)
 
     @staticmethod
     def _read_knp(file: TextIO,
@@ -256,8 +282,7 @@ class KyotoReader:
                 match = SID_PTN_KWDLC.match(
                     sid_string) or SID_PTN.match(sid_string)
                 if match is None:
-                    raise ValueError(
-                        f'unsupported S-ID format: {sid_string} in {path}')
+                    raise ValueError(f'unsupported S-ID format: {sid_string} in {path}')
                 if did != match.group('did') or sid == match.group('sid'):
                     if did is not None:
                         did2knps[did] = buff
@@ -306,17 +331,13 @@ class KyotoReader:
             else:
                 with self.did2pkls[doc_id].open(mode='rb') as f:
                     return pickle.load(f)
-        elif doc_id in self.did2knps:
-            return Document(self.did2knps[doc_id],
-                            doc_id,
-                            self.target_cases,
-                            self.target_corefs,
-                            self.relax_cases,
-                            self.extract_nes,
-                            self.use_pas_tag)
-        else:
-            logger.error(f'unknown document id: {doc_id}')
-            return None
+        return Document(self.get_knp(doc_id),
+                        doc_id,
+                        self.target_cases,
+                        self.target_corefs,
+                        self.relax_cases,
+                        self.extract_nes,
+                        self.use_pas_tag)
 
     def process_documents(self,
                           doc_ids: Iterable[str],
