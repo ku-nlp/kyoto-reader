@@ -187,7 +187,7 @@ class KyotoReader:
         # If True, determine the document ID from the sentence ID in the document.
         self.did_from_sid: bool = did_from_sid
 
-        self.did2pkls = {file.path.stem: file for file in file_paths if file.content_basename.endswith(pickle_ext)}
+        self._did2pkl = {file.path.stem: file for file in file_paths if file.content_basename.endswith(pickle_ext)}
         if n_jobs == -1:
             self.n_jobs = os.cpu_count()
         elif n_jobs >= 0:
@@ -201,8 +201,8 @@ class KyotoReader:
             )
             self.n_jobs = 0
 
-        self.did2knps: Dict[str, str] = {}
-        self.did2file: Dict[str, FileHandler] = {}
+        self._did2knp: Dict[str, str] = {}
+        self._did2file: Dict[str, FileHandler] = {}
         if self.did_from_sid is True:
             with (self.archive_handler.open() if self.archive_handler else nullcontext()) as archive:
                 args_iter = (
@@ -213,13 +213,13 @@ class KyotoReader:
                         rets: Iterable[Dict[str, str]] = executor.map(KyotoReader.read_knp, *zip(*args_iter))
                 else:
                     rets: List[Dict[str, str]] = [KyotoReader.read_knp(*args) for args in args_iter]
-            self.did2knps.update(dict(ChainMap(*rets)))
+            self._did2knp.update(dict(ChainMap(*rets)))
         else:
-            self.did2file.update(
+            self._did2file.update(
                 {file.path.stem: file for file in file_paths if file.content_basename.endswith(knp_ext)}
             )
 
-        self.doc_ids: List[str] = sorted({*self.did2knps.keys(), *self.did2pkls.keys(), *self.did2file.keys()})
+        self.doc_ids: List[str] = sorted({*self._did2knp.keys(), *self._did2pkl.keys(), *self._did2file.keys()})
 
         self.target_cases: Collection[str] = self._get_targets(target_cases, ALL_CASES, 'case')
         self.target_corefs: Collection[str] = self._get_targets(target_corefs, ALL_COREFS, 'coref')
@@ -230,21 +230,21 @@ class KyotoReader:
         self.pickle_ext: str = pickle_ext
 
     def get_knp(self, did: str) -> str:
-        if did in self.did2knps:
-            return self.did2knps[did]
+        if did in self._did2knp:
+            return self._did2knp[did]
         with (self.archive_handler.open() if self.archive_handler else nullcontext()) as archive:
-            if did in self.did2file:
-                self.did2knps.update(self.read_knp(self.did2file[did], archive))
-                return self.did2knps[did]
-            if did in self.did2pkls:
+            if did in self._did2file:
+                self._did2knp.update(self.read_knp(self._did2file[did], archive))
+                return self._did2knp[did]
+            if did in self._did2pkl:
                 if archive is not None:
-                    with self.archive_handler.open_member(archive, str(self.did2pkls[did].path)) as f:
+                    with self.archive_handler.open_member(archive, str(self._did2pkl[did].path)) as f:
                         document = pickle.load(f)
                 else:
-                    with self.did2pkls[did].open(mode='rb') as f:
+                    with self._did2pkl[did].open(mode='rb') as f:
                         document = pickle.load(f)
-                self.did2knps[did] = document.knp_string
-                return self.did2knps[did]
+                self._did2knp[did] = document.knp_string
+                return self._did2knp[did]
         raise ValueError(f'document id: {did} not found')
 
     def read_knp(self,
@@ -324,12 +324,12 @@ class KyotoReader:
             doc_id (str): An ID of a document to process.
             archive (Optional[ArchiveFile]): An archive to read the document from.
         """
-        if doc_id in self.did2pkls:
+        if doc_id in self._did2pkl:
             if archive is not None:
-                with self.archive_handler.open_member(archive, str(self.did2pkls[doc_id].path)) as f:
+                with self.archive_handler.open_member(archive, str(self._did2pkl[doc_id].path)) as f:
                     return pickle.load(f)
             else:
-                with self.did2pkls[doc_id].open(mode='rb') as f:
+                with self._did2pkl[doc_id].open(mode='rb') as f:
                     return pickle.load(f)
         return Document(self.get_knp(doc_id),
                         doc_id,
