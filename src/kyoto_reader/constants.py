@@ -131,4 +131,6 @@ NE_CATEGORIES = [
 ]
 
 SID_PTN = re.compile(r'^(?P<sid>(?P<did>[a-zA-Z0-9-_]+?)(-(\d+))?)$')
-SID_PTN_KWDLC = re.compile(r'^(?P<sid>(?P<did>w\d{6}-\d{10})(-\d+){1,2})$')
+SID_PTN_KWDLC = re.compile(r'^(?P<sid>(?P<did>w\d{6}-\d{10})(-\d+)(-\d{2})?)$')
+# Wikipedia Annotated Corpus (under construction)
+SID_PTN_WAC = re.compile(r'^(?P<sid>(?P<did>wiki\d{8})(-\d{2})(-\d{2})?)$')

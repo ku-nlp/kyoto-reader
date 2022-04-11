@@ -13,7 +13,7 @@ from functools import partial
 from pathlib import Path
 from typing import List, Dict, Optional, Union, Iterable, Collection, Any, BinaryIO, TextIO
 
-from .constants import ALL_CASES, ALL_COREFS, SID_PTN, SID_PTN_KWDLC
+from .constants import ALL_CASES, ALL_COREFS, SID_PTN, SID_PTN_KWDLC, SID_PTN_WAC
 from .document import Document
 
 logger = logging.getLogger(__name__)
@@ -279,8 +279,7 @@ class KyotoReader:
         for line in file:
             if line.startswith('# S-ID:') and did_from_sid:
                 sid_string = line[7:].strip().split()[0]
-                match = SID_PTN_KWDLC.match(
-                    sid_string) or SID_PTN.match(sid_string)
+                match = SID_PTN_KWDLC.match(sid_string) or SID_PTN_WAC.match(sid_string) or SID_PTN.match(sid_string)
                 if match is None:
                     raise ValueError(f'unsupported S-ID format: {sid_string} in {path}')
                 if did != match.group('did') or sid == match.group('sid'):
