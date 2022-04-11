@@ -15,7 +15,7 @@ def main():
 
     docs: Dict[str, str] = {}
     for path in Path(args.input_dir).glob('**/*.knp'):
-        docs.update(KyotoReader.read_knp(path, did_from_sid=True))
+        docs.update(KyotoReader._read_knp_wrapper(path, did_from_sid=True))
 
     for did, knp_string in docs.items():
         out_path = Path(args.output_dir) / f'{did}.knp'

@@ -210,9 +210,9 @@ class KyotoReader:
                 )
                 if self.n_jobs > 0:
                     with futures.ProcessPoolExecutor(max_workers=self.n_jobs) as executor:
-                        rets: Iterable[Dict[str, str]] = executor.map(KyotoReader.read_knp, *zip(*args_iter))
+                        rets: Iterable[Dict[str, str]] = executor.map(KyotoReader._read_knp_wrapper, *zip(*args_iter))
                 else:
-                    rets: List[Dict[str, str]] = [KyotoReader.read_knp(*args) for args in args_iter]
+                    rets: List[Dict[str, str]] = [KyotoReader._read_knp_wrapper(*args) for args in args_iter]
             self._did2knp.update(dict(ChainMap(*rets)))
         else:
             self._did2file.update(
@@ -234,7 +234,7 @@ class KyotoReader:
             return self._did2knp[did]
         with (self.archive_handler.open() if self.archive_handler else nullcontext()) as archive:
             if did in self._did2file:
-                self._did2knp.update(self.read_knp(self._did2file[did], archive))
+                self._did2knp.update(self._read_knp_wrapper(self._did2file[did], archive))
                 return self._did2knp[did]
             if did in self._did2pkl:
                 if archive is not None:
@@ -247,10 +247,10 @@ class KyotoReader:
                 return self._did2knp[did]
         raise ValueError(f'document id: {did} not found')
 
-    def read_knp(self,
-                 file: FileHandler,
-                 archive: Optional[ArchiveFile] = None,
-                 ) -> Dict[str, str]:
+    def _read_knp_wrapper(self,
+                          file: FileHandler,
+                          archive: Optional[ArchiveFile] = None,
+                          ) -> Dict[str, str]:
         """Read KNP format file that is located at the specified path. The file can contain multiple documents.
 
         Args:
