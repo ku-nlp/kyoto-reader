@@ -1,7 +1,6 @@
-from typing import List, Dict
 from pathlib import Path
 
-from kyoto_reader import ALL_CASES, ALL_COREFS, KyotoReader, Mention, Entity, Predicate, SpecialArgument, Argument
+from kyoto_reader import KyotoReader
 
 
 def test_process_documents(fixture_kyoto_reader: KyotoReader):

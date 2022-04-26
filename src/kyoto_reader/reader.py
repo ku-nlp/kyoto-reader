@@ -277,7 +277,7 @@ class KyotoReader:
         did = sid = None
         did2knps = {}
         for line in file:
-            if line.startswith('# S-ID:') and did_from_sid:
+            if line.startswith('# S-ID:') and did_from_sid is True:
                 sid_string = line[7:].strip().split()[0]
                 match = SID_PTN_KWDLC.match(sid_string) or SID_PTN_WAC.match(sid_string) or SID_PTN.match(sid_string)
                 if match is None:
