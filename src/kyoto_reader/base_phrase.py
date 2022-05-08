@@ -132,7 +132,7 @@ class BasePhrase:
         return iter(self.mrphs)
 
     def __eq__(self, other: 'BasePhrase') -> bool:
-        return self.sid == other.sid and self.dtid == other.dtid
+        return isinstance(other, BasePhrase) and self.sid == other.sid and self.dtid == other.dtid
 
     def __str__(self) -> str:
         return self.surf

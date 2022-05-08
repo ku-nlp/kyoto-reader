@@ -101,7 +101,7 @@ class Sentence:
         return iter(self.bps)
 
     def __eq__(self, other: 'Sentence') -> bool:
-        return self.sid == other.sid
+        return isinstance(other, Sentence) and self.sid == other.sid
 
     def __str__(self) -> str:
         return self.surf

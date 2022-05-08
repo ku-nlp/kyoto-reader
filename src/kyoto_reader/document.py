@@ -638,7 +638,7 @@ class Document:
         return iter(self.sid2sentence.values())
 
     def __eq__(self, other: 'Document') -> bool:
-        return self.doc_id == other.doc_id
+        return isinstance(other, Document) and self.doc_id == other.doc_id
 
     def __str__(self):
         return self.surf
