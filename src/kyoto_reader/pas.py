@@ -1,7 +1,7 @@
 import logging
-from typing import List, Dict, Union
-from collections import defaultdict
 from abc import abstractmethod
+from collections import defaultdict
+from typing import List, Dict
 
 from .base_phrase import BasePhrase
 
@@ -62,9 +62,6 @@ class Argument(BasePhrase, BaseArgument):
 
     def __str__(self) -> str:
         return self.core
-
-    def __eq__(self, other: Union[BaseArgument, BasePhrase]) -> bool:
-        return isinstance(other, (Argument, BasePhrase)) and self.sid == other.sid and self.dtid == other.dtid
 
     # for test
     def __iter__(self):

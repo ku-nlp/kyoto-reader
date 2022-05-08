@@ -42,9 +42,6 @@ class Mention(BasePhrase):
     def __str__(self) -> str:
         return self.core
 
-    def __eq__(self, other: 'Mention') -> bool:
-        return isinstance(other, Mention) and self.dtid == other.dtid and self.sid == other.sid
-
     def __hash__(self) -> int:
         return hash((self.dtid, self.sid))
 
