@@ -1,7 +1,10 @@
 import logging
-from typing import List, Dict, Optional, Iterator
+from typing import List, Dict, Optional, Iterator, Union, TYPE_CHECKING
 
 from pyknp import Tag, Morpheme
+
+if TYPE_CHECKING:
+    from .pas import Argument
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -131,7 +134,7 @@ class BasePhrase:
     def __iter__(self) -> Iterator[Morpheme]:
         return iter(self.mrphs)
 
-    def __eq__(self, other: 'BasePhrase') -> bool:
+    def __eq__(self, other: Union['BasePhrase', 'Argument']) -> bool:
         return isinstance(other, BasePhrase) and self.sid == other.sid and self.dtid == other.dtid
 
     def __str__(self) -> str:

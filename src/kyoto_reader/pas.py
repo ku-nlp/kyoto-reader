@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict
+from typing import List, Dict, Union
 from collections import defaultdict
 from abc import abstractmethod
 
@@ -63,8 +63,8 @@ class Argument(BasePhrase, BaseArgument):
     def __str__(self) -> str:
         return self.core
 
-    def __eq__(self, other: BaseArgument):
-        return isinstance(other, Argument) and self.sid == other.sid and self.dtid == other.dtid
+    def __eq__(self, other: Union[BaseArgument, BasePhrase]) -> bool:
+        return isinstance(other, (Argument, BasePhrase)) and self.sid == other.sid and self.dtid == other.dtid
 
     # for test
     def __iter__(self):
@@ -138,7 +138,7 @@ class Pas:
                 return 'overt'
             else:
                 return 'dep'
-        elif pred.parent is not None and arg == pred.parent:
+        elif arg == pred.parent:
             return 'dep'
         elif arg.sid == pred.sid:
             return 'intra'
