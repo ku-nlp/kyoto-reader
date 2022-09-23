@@ -1,5 +1,5 @@
 jaconv==0.3
 kyoto-reader==2.2.0
-protobuf==3.19.4
+protobuf==3.19.5
 pyknp==0.6.1
 six==1.16.0
