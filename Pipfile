@@ -4,8 +4,8 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-zipp = "*"
 pytest = "*"
+ipython = "<8.0"
 ipdb = "*"
 kyoto-reader = {editable = true,path = "."}
 sphinx = "*"
@@ -14,8 +14,10 @@ sphinx-autodoc-typehints = "*"
 recommonmark = "*"
 twine = "*"
 sphinx-rtd-theme = "*"
+autopep8 = "*"
+typing-extensions = "*"
 
 [packages]
 
 [requires]
-python_version = "3.7"
+python_version = ">=3.7.2"

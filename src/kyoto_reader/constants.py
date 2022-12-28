@@ -1,3 +1,5 @@
+import re
+
 ALL_CASES = [
     'ガ',
     'デ',
@@ -49,7 +51,7 @@ ALL_CASES = [
     'ヲメグッテ',
     'ニトモナッテ',
     'ニモトヅイテ',
-    '無',  # <係:無格>
+    '無',
     '修飾',
     '判ガ',
     '時間',
@@ -57,25 +59,12 @@ ALL_CASES = [
 ]
 ALL_CASES += [case + '≒' for case in ALL_CASES]
 
-CORE_CASES = [
-    'ガ２',
-    'ガ',
-    'ヲ',
-    'ニ',
-]
-
 ALL_COREFS = [
     '=',
     '=構',
     '=役',
 ]
 ALL_COREFS += [case + '≒' for case in ALL_COREFS]
-
-CORE_COREFS = [
-    '=',
-    '=構',
-    '=役',
-]
 
 UNCERTAIN = '[不明]'  # used only in crowd sourcing annotations
 
@@ -103,6 +92,7 @@ UNSPECIFIED_OBJECT = [
     '不特定:物７',
     '不特定:物８',
     '不特定:物９',
+    '不特定:物１０',
 ]
 
 UNSPECIFIED_CIRCUMSTANCES = [
@@ -115,6 +105,7 @@ UNSPECIFIED_CIRCUMSTANCES = [
     '不特定:状況７',
     '不特定:状況８',
     '不特定:状況９',
+    '不特定:状況１０',
 ]
 
 ALL_EXOPHORS = [
@@ -138,3 +129,8 @@ NE_CATEGORIES = [
     'PERCENT',
     'OPTIONAL',
 ]
+
+SID_PTN = re.compile(r'^(?P<sid>(?P<did>[a-zA-Z0-9-_]+?)(-(\d+))?)$')
+SID_PTN_KWDLC = re.compile(r'^(?P<sid>(?P<did>w\d{6}-\d{10})(-\d+)(-\d{2})?)$')
+# Wikipedia Annotated Corpus (under construction)
+SID_PTN_WAC = re.compile(r'^(?P<sid>(?P<did>wiki\d{8})(-\d{2})(-\d{2})?)$')

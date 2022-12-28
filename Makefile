@@ -12,5 +12,5 @@ build:
 
 .PHONY: build-doc
 build-doc:
-	sphinx-apidoc -ef -o docs/source src/kyoto_reader
+	sphinx-apidoc -efT -o docs/source src/kyoto_reader
 	cd docs && make html

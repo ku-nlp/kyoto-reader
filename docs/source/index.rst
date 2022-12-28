@@ -3,58 +3,76 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-===================================================
-kyoto-reader: A processor for KWDLC and KyotoCorpus
-===================================================
+=========================================================================
+kyoto-reader: A processor for KWDLC, KyotoCorpus, and AnnotatedFKCCorpus
+=========================================================================
 
 
 About
 ========================
 
-京都大学ウェブ文書リードコーパス (KWDLC_) や京都大学テキストコーパス (KyotoCorpus_) をパースし、
-述語項構造や共参照関係を扱うためのインターフェースを提供します。
+京都大学が公開している述語項構造や共参照関係が付与されたコーパスをパースし、Python から扱うためのインターフェースを提供します。
 このツールは pyknp のラッパーであるため、形態素情報や係り受け関係なども扱うことが可能です。
 
-.. _KWDLC: https://github.com/ku-nlp/KWDLC
-.. _KyotoCorpus: https://github.com/ku-nlp/KyotoCorpus
+.. list-table:: 利用可能なコーパス一覧
+    :widths: 30 20 10
+    :header-rows: 1
 
+    * - Name
+      - Domain
+      - Size
+    * - 京都大学ウェブ文書リードコーパス_ (KWDLC)
+      - ウェブテキスト
+      - 16,038 文
+    * - 京都大学テキストコーパス_ (KyotoCorpus)
+      - 新聞記事・社説
+      - 15,872 文
+    * - 不満調査データセットタグ付きコーパス_ (AnnotatedFKCCorpus)
+      - 不満に関する投稿
+      - 1,282 文
+
+.. _京都大学ウェブ文書リードコーパス: https://github.com/ku-nlp/KWDLC
+.. _京都大学テキストコーパス: https://github.com/ku-nlp/KyotoCorpus
+.. _不満調査データセットタグ付きコーパス: https://github.com/ku-nlp/AnnotatedFKCCorpus
 
 Requirements
 ========================
 
 - Python
-    -  Verified Versions: 3.6, 3.7, 3.8
-- `pyknp 0.4.5`_
-- KNP (optional)
+    -  Verified Versions: 3.7, 3.8, 3.9, 3.10
+- `pyknp 0.4.6+`_
+- KNP_ (optional)
 - JumanDIC_ (optional)
 
-.. _`pyknp 0.4.5`: https://github.com/ku-nlp/pyknp
+.. _`pyknp 0.4.6+`: https://github.com/ku-nlp/pyknp
+.. _KNP: https://github.com/ku-nlp/knp
 .. _JumanDIC: https://github.com/ku-nlp/JumanDIC
 
 
 Install kyoto-reader
 ========================
 
-.. code-block:: none
+.. code-block:: bash
 
     $ pip install kyoto-reader
 
 or
 
-.. code-block:: none
+.. code-block:: bash
 
     $ git clone https://github.com/ku-nlp/kyoto-reader
     $ cd kyoto-reader
     $ python setup.py install [--prefix=path]
 
 
-A Brief Explanation of KWDLC/KyotoCorpus
+A Brief Explanation of KWDLC and other corpora
 ================================================
 
-| KWDLC と KyotoCorpus はどちらも日本語の文書に対して形態素や構文情報の他、述語項構造や共参照関係が人手で付与されたコーパス。
-| KWDLC はウェブから抽出した3文を1文書として約5,000文書に対してアノテーションされている。
-| KyotoCorpus は毎日新聞の記事を対象に、形態素・構文情報については 40,000 文、述語項構造・共参照関係についてはそのうちの 10,000 文にアノテーションされている。
-| なお、述語項構造・共参照関係のアノテーションは `<rel>` タグによって行われている。
+| KWDLC, KyotoCorpus, AnnotatedFKCCorpus はいずれも日本語の文書に対して形態素や構文情報の他、述語項構造や共参照関係が人手で付与されたコーパス。
+| KWDLC はウェブから抽出した 3 文を 1 文書として約 5,000 文書に対してアノテーションされている。
+| KyotoCorpus は毎日新聞の記事を対象に、形態素・構文情報については 40,000 文に、述語項構造・共参照関係についてはそのうちの約 10,000 文にアノテーションされている。
+| AnnotatedFKCCorpus は一般の人々から集められた不満テキスト約 1,300 文に対してアノテーションを行ったコーパスである。
+| なお、述語項構造・共参照関係のアノテーションは ``<rel>`` タグによって行われている。
 
 KWDLC の例:
 
@@ -81,31 +99,29 @@ KWDLC の例:
 Usage
 ========================
 
-上記の例のデータが入ったファイル w201106-0000060050.knp を読み込む場合
+上記の例のデータが入ったファイル ``w201106-0000060050.knp`` を読み込む場合
 
 .. code-block:: python
 
-   from pathlib import Path
-   from typing import List
-   from kyoto_reader import KyotoReader, Document, Predicate
+   from kyoto_reader import KyotoReader, Document
 
    # 文書集合を扱うオブジェクト
-   reader = KyotoReader(Path('w201106-0000060050.knp'),  # ファイルまたはディレクトリを Path オブジェクトで指定する
+   reader = KyotoReader('w201106-0000060050.knp',  # ファイルまたはディレクトリのパスを指定する
                         target_cases=['ガ', 'ヲ', 'ニ'],  # ガ,ヲ,ニ格のみを対象とする
                         target_corefs=['=', '=構', '=≒', '=構≒'],  # 共参照として扱う関係を列挙
                         extract_nes=True  # 固有表現もコーパスから抽出する
                         )
    print('読み込んだ文書:')
-   for did, source in reader.did2source.items():
-       print(f'  {source} (文書ID: {did})')
+   for doc_id in reader.doc_ids:
+       print(f'  文書 ID: {doc_id}')
 
    print('\n--- 述語項構造 ---')
    document: Document = reader.process_document('w201106-0000060050')
    for predicate in document.get_predicates():
-       print(f'述語: {predicate.midasi}')
+       print(f'述語: {predicate.core}')
        for case, arguments in document.get_arguments(predicate).items():
            print(f'  {case}格: ', end='')
-           print(', '.join(argument.midasi for argument in arguments))
+           print(', '.join(str(argument) for argument in arguments))
 
    print('\n--- ツリー形式 ---')
    document.draw_tree(sid='w201106-0000060050-1', coreference=False)
@@ -115,7 +131,7 @@ Usage
 .. code-block:: none
 
    読み込んだ文書:
-     w201106-0000060050.knp (文書ID: w201106-0000060050)
+     文書 ID: w201106-0000060050
 
    --- 述語項構造 ---
    述語: トス
@@ -128,36 +144,62 @@ Usage
      ニ格:
 
    --- ツリー形式 ---
-   コインn┐
-    トスnをp─┐  不特定:人:ガ コイン:ヲ :ニ
-        ３n回s┤
-        行うv。*  不特定:人,著者,読者:ガ トス:ヲ :ニ
+   コイン┐
+     トスを─┐  ガ:不特定:人 ヲ:コイン
+         ３回┤
+         行う。  ガ:読者,不特定:人,著者 ヲ:トス
 
 
-Corpus Preprocessor
+CLI Interfaces
 ========================
 
-- Makefile を使用してコーパスに追加の素性を付与することができる (KNP と JumanDIC が必要)。
+``kyoto`` コマンドを使用することで、コーパスの内容を表示したりコーパスを加工したりできる。
 
-  以下のコマンドを実行することでコーパスのディレクトリに Makefile が生成される。
+Browsing files
+------------------------
+
+- ``kyoto show``: KNP ファイルの内容をツリー形式で表示 (ディレクトリを指定した場合、含まれる全てのファイルを表示)
 
 .. code-block:: bash
 
-   $ configure --corpus-dir </path/to/downloaded/knp/directory> --data-dir </path/to/output/directory> --juman-dic-dir </path/to/JumanDIC/directory>
+   $ kyoto show /path/to/knp/file.knp
+
+- ``kyoto list``: 指定されたディレクトリに含まれる文書 ID を列挙
+
+.. code-block:: bash
+
+   $ kyoto list /path/to/knp/directory
+
+Processing Corpus
+------------------------
+
+コーパスを解析し、追加の素性を付与 (KNP と JumanDIC が必要)
+
+- ``kyoto configure``: コーパスのディレクトリに素性付与のための Makefile を生成
+
+  - ``make`` を実行することで、コーパスが 1 文書 1 ファイルに分割され、 ``knp/`` ディレクトリに素性の付与されたファイルが出力される。
+
+.. code-block:: bash
+
+   $ kyoto configure --corpus-dir /path/to/downloaded/knp/directory --data-dir /path/to/output/directory --juman-dic-dir /path/to/JumanDIC/directory
    created Makefile at /path/to/output/directory
-
-この Makefile を実行することで knp/ ディレクトリに素性の付与されたファイルが出力される
-
-.. code-block:: bash
-
    $ cd /path/to/output/directory
-   $ make -i
+   $ make -j <num-parallel>
 
-- idsplit コマンドを使用してコーパスを train/dev/test ファイルに分割することができる．
+- ``kyoto idsplit``: コーパスを train/dev/test ファイルに分割
 
 .. code-block:: bash
 
-   $ idsplit --corpus-dir </path/to/knp/dir> --output-dir </path/to/output/dir> --train </path/to/train/id/file> --dev </path/to/dev/id/file> --test </path/to/test/id/file>
+   $ kyoto idsplit --corpus-dir /path/to/knp/dir --output-dir /path/to/output/dir --train /path/to/train/id/file --dev /path/to/dev/id/file --test /path/to/test/id/file
+
+Zsh Completions
+------------------------
+
+``<virtualenv-path>/share/zsh/site-functions`` を ``FPATH`` に追加することで ``kyoto`` コマンドの補完が可能 (zsh 限定)
+
+.. code-block:: bash
+
+   $ echo 'export FPATH=<virtualenv-path>/share/zsh/site-functions:$FPATH' >> ~/.zshrc
 
 Documents
 ============
@@ -165,17 +207,19 @@ Documents
    :maxdepth: 2
    :caption: Contents:
 
+   kyoto_reader
    kyoto_reader.reader
+   kyoto_reader.document
+   kyoto_reader.sentence
    kyoto_reader.base_phrase
    kyoto_reader.pas
    kyoto_reader.coreference
    kyoto_reader.ne
-   kyoto_reader.constants
 
 
 Author/Contact
 ========================
-京都大学 黒橋・河原研究室 (contact@nlp.ist.i.kyoto-u.ac.jp)
+京都大学 黒橋・褚・村脇研究室 (contact **at** nlp.ist.i.kyoto-u.ac.jp)
 
 - Nobuhiro Ueda
 

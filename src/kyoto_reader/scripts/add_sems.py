@@ -33,12 +33,20 @@ import re
 import sys
 import argparse
 from pathlib import Path
-from typing import List, Union
+from typing import List, Union, Dict
 from collections import defaultdict
 
 from pyknp import Juman, JUMAN_FORMAT
 
 from kyoto_reader.scripts.sexp import parse
+
+# language=regexp
+BASE_FEATURES_PAT = r'(?P<attrs>([^ ]+ [^ ]+ [^ ]+ [^ ]+ \d+ [^ ]+ \d+ [^ ]+ \d+ [^ ]+ \d+))'
+# language=regexp
+SEMANTICS_PAT = r'(?P<sems>("([^"]|\\")+?")|NIL)'
+# language=regexp
+FEATURES_PAT = r'(?P<feats>(<[^>]+>)*)'
+JUMANPP_PAT: re.Pattern = re.compile(rf"^({BASE_FEATURES_PAT})(\s{SEMANTICS_PAT})?(\s{FEATURES_PAT})?$")
 
 
 def main():
@@ -103,7 +111,7 @@ def main():
                     feature['読み'] = ['　']
                 features.append(feature)
 
-    sems_dic = defaultdict(list)
+    sems_dic: Dict[tuple, List[str]] = defaultdict(list)
     for feature in features:
         pos: str = feature['品詞']
         pos2: str = feature.get('品詞細分類', '')
@@ -131,22 +139,29 @@ def main():
                 fout.write(add_sems(line, sems_dic, args))
 
 
-def add_sems(input_line: str, sems_dic, args):
+def add_sems(input_line: str, sems_dic: Dict[tuple, List[str]], args: argparse.Namespace):
     if input_line[0] in ('#', '*', '+') or input_line.strip() == 'EOS':
         return input_line
 
-    _, yomi, genkei, pos, _, pos2, _, _, _, _, _, *sems = input_line.strip().split()
-    if sems:
-        org_sem: str = sems[0].strip('"')
+    match = JUMANPP_PAT.match(input_line.strip())
+    if match is None:
+        raise ValueError(f'malformed line: {input_line}')
+
+    _, yomi, genkei, pos, _, pos2, _, _, _, _, _ = match.group('attrs').strip().split()
+    sstring = match.group('sems') or ''
+    if sstring == 'NIL':
+        orig_sems = []
     else:
-        org_sem: str = ''
+        orig_sems = sstring.strip('"').split()
+
+    features = match.group('feats') or ''
+
     key = (genkei, pos)
     if args.pos is False and pos2 != '*':
         key += (pos2,)
     key_yomi = key + (yomi,)
 
-    # 意味情報の手前まで
-    newline: str = ' '.join(input_line.split()[:11])
+    newline: str = match.group('attrs')
     output_line = newline
 
     if args.yomi and key_yomi in sems_dic:
@@ -154,17 +169,21 @@ def add_sems(input_line: str, sems_dic, args):
 
     if key in sems_dic:
         first_sem: str = sems_dic[key][0]  # 該当する形態素のうち JumanDIC で最初にヒットしたものの意味情報を採用
+        sems = [first_sem]
         # jumanpp を使って代表表記を得る
         if args.use_jumanpp and '代表表記' not in first_sem:
             repname = get_repname_using_jumanpp(genkei, pos)
-            first_sem = f'代表表記:{repname} ' + first_sem
+            sems = [f'代表表記:{repname}'] + sems
 
-        output_line += f' "{first_sem}'
-
-        match = re.match(r'(NE:\S+?)[ "]', org_sem)
+        match = re.match(r'(NE:\S+?)[ "]', ' '.join(orig_sems))
         if match:
-            output_line += ' ' + match.group(1)
-        output_line += '"\n'
+            sems.append(match.group(1))
+        output_line += ' "{}"'.format(' '.join(sems))
+
+        if features:
+            output_line += f' {features}'
+
+        output_line += '\n'
 
         # 1つ目以外の形態素候補を@行として表示する場合
         if args.remainder:
@@ -172,12 +191,17 @@ def add_sems(input_line: str, sems_dic, args):
                 output_line += f'@ {newline} "{sem}"\n'
     else:
         # jumanpp を使って代表表記を得る
-        if args.use_jumanpp and '代表表記' not in org_sem:
+        if args.use_jumanpp and '代表表記' not in sstring:
             repname = get_repname_using_jumanpp(genkei, pos)
-            sem = f'代表表記:{repname}' + (f' {org_sem}' if org_sem else '')
-            output_line += f' "{sem}"\n'
+            sems = [f'代表表記:{repname}'] + orig_sems
+            output_line += ' "{}"'.format(' '.join(sems))
         else:
-            output_line += f' "{org_sem}"\n' if org_sem else '\n'
+            output_line += ' "{}"'.format(' '.join(orig_sems)) if orig_sems else ' NIL'
+
+        if features:
+            output_line += f' {features}'
+
+        output_line += '\n'
 
     return output_line
 

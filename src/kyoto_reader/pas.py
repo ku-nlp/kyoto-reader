@@ -1,9 +1,7 @@
 import logging
-from typing import List, Dict
-from collections import defaultdict
 from abc import abstractmethod
-
-from pyknp import Morpheme
+from collections import defaultdict
+from typing import List, Dict
 
 from .base_phrase import BasePhrase
 
@@ -11,12 +9,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-# 述語を表すクラス
+# a class to represent a predicate
 Predicate = BasePhrase
 
 
 class BaseArgument:
-    """全ての項の基底クラス"""
+    """A base class for all kinds of arguments"""
+
     def __init__(self, dep_type: str, mode: str):
         self.dep_type: str = dep_type
         self.mode: str = mode
@@ -26,9 +25,8 @@ class BaseArgument:
     def is_special(self) -> bool:
         return self.dep_type == 'exo'
 
-    @property
     @abstractmethod
-    def midasi(self) -> str:
+    def __str__(self) -> str:
         raise NotImplementedError
 
     @abstractmethod
@@ -48,33 +46,31 @@ class Argument(BasePhrase, BaseArgument):
         bp (BasePhrase): 基本句
         dep_type (str): 係り受けタイプ ("overt", "dep", "intra", "inter", "exo")
         mode (str): モード
-        mrph2dmid (dict): 形態素とその文書レベルIDを紐付ける辞書
     """
 
     def __init__(self,
                  bp: BasePhrase,
                  dep_type: str,
                  mode: str,
-                 mrph2dmid: Dict[Morpheme, int]
                  ) -> None:
-        # initialize BasePhrase
-        super(Argument, self).__init__(bp.tag, bp.dtid, bp.sid, mrph2dmid, parent=bp.parent, children=bp.children)
+        super(Argument, self).__init__(bp.tag, bp.dmids[0], bp.dtid, bp.sid, bp.doc_id, parent=bp.parent,
+                                       children=bp.children)  # initialize BasePhrase
         super(BasePhrase, self).__init__(dep_type, mode)  # initialize BaseArgument
+
+    def __repr__(self):
+        return f'Argument(bp: {repr(super(Argument, self))}, dep_type: {self.dep_type}, mode: {self.mode})'
+
+    def __str__(self) -> str:
+        return self.core
 
     # for test
     def __iter__(self):
-        yield self.midasi
+        yield self.core
         yield self.tid
         yield self.dtid
         yield self.sid
         yield self.dep_type
         yield self.mode
-
-    def __str__(self):
-        return f'{self.midasi} (sid: {self.sid}, tid: {self.tid}, dtid: {self.dtid})'
-
-    def __eq__(self, other: BaseArgument):
-        return isinstance(other, Argument) and self.dtid == other.dtid
 
 
 class SpecialArgument(BaseArgument):
@@ -85,36 +81,39 @@ class SpecialArgument(BaseArgument):
         eid (int): 外界照応詞のエンティティID
         mode (str): モード
     """
+
     def __init__(self, exophor: str, eid: int, mode: str):
         self.eid = eid
         dep_type = 'exo'
         super().__init__(dep_type, mode)
         self.exophor: str = exophor
 
-    @property
-    def midasi(self) -> str:
-        return self.exophor
+    def __repr__(self):
+        return f'SpecialArgument(exophor: {self.exophor}, eid: {self.eid}, mode: {self.mode})'
 
-    # for test
-    def __iter__(self):
-        yield self.midasi
-        yield self.eid
-        yield self.dep_type
-        yield self.mode
+    def __str__(self) -> str:
+        return self.exophor
 
     def __eq__(self, other: BaseArgument):
         return isinstance(other, SpecialArgument) and self.exophor == other.exophor
 
+    # for test
+    def __iter__(self):
+        yield self.exophor
+        yield self.eid
+        yield self.dep_type
+        yield self.mode
+
 
 class Pas:
-    """ 述語項構造を保持するオブジェクト
+    """A class to represent a predicate-argument structure (PAS).
 
     Args:
         pred_bp (BasePhrase): 述語となる基本句
 
     Attributes:
         predicate (Predicate): 述語
-        arguments (dict): 格と項
+        arguments (Dict[str, List[BaseArgument]]): 格と項
     """
 
     def __init__(self, pred_bp: BasePhrase):
@@ -122,9 +121,9 @@ class Pas:
         self.predicate: Predicate = pred_bp
         self.arguments: Dict[str, List[BaseArgument]] = defaultdict(list)
 
-    def add_argument(self, case: str, bp: BasePhrase, mode: str, mrph2dmid: Dict[Morpheme, int]):
+    def add_argument(self, case: str, bp: BasePhrase, mode: str):
         dep_type = self._get_dep_type(self.predicate, bp, case)
-        argument = Argument(bp, dep_type, mode, mrph2dmid)
+        argument = Argument(bp, dep_type, mode)
         if argument not in self.arguments[case]:
             self.arguments[case].append(argument)
 
@@ -136,7 +135,7 @@ class Pas:
                 return 'overt'
             else:
                 return 'dep'
-        elif pred.parent is not None and arg == pred.parent:
+        elif arg == pred.parent:
             return 'dep'
         elif arg.sid == pred.sid:
             return 'intra'
@@ -154,14 +153,16 @@ class Pas:
             return
         for arg in self.arguments[case]:
             arg.optional = True
-            logger.info(f'{self.sid:24}marked {arg.midasi} as optional')
+            logger.info(f'{self.sid:24}marked {arg} as optional')
 
     @property
     def dtid(self) -> int:
+        """A document-wide tag ID."""
         return self.predicate.dtid
 
     @property
     def sid(self) -> str:
+        """A sentence ID"""
         return self.predicate.sid
 
     @property

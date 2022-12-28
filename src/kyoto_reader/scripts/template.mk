@@ -9,7 +9,7 @@ ADD_SEMS_KNP_DIR := $(OUT_DIR)/sems
 OUT_KNP_DIR := $(OUT_DIR)/knp
 
 CORPUS_KNPS := $(shell find $(IN_DIR) -type f -name "*.knp")
-ORIG_KNPS := $(shell find $(ORIG_KNP_DIR) -type f -name "*.knp")
+ORIG_KNPS := $(shell find $(ORIG_KNP_DIR) -type f -name "*.knp" 2> /dev/null)
 ADD_SEMS_KNPS := $(patsubst $(ORIG_KNP_DIR)/%.knp,$(ADD_SEMS_KNP_DIR)/%.knp,$(ORIG_KNPS))
 OUT_KNPS := $(patsubst $(ADD_SEMS_KNP_DIR)/%.knp,$(OUT_KNP_DIR)/%.knp,$(ADD_SEMS_KNPS))
 
@@ -31,9 +31,11 @@ $(ORIG_KNP_DONE): $(CORPUS_KNPS)
 .PHONY: add-feats
 add-feats: $(OUT_KNPS)
 
-# knp -read-feature
+# knp -dpnd -read-feature
+# -dpnd-fast: 格解析を行わない
+# -read-feature: <rel>タグを消さない
 $(OUT_KNPS): $(OUT_KNP_DIR)/%.knp: $(ADD_SEMS_KNP_DIR)/%.knp
-	mkdir -p $(dir $@) && cat $< | $(KNP) -tab -read-feature > $@ || rm -f $@
+	mkdir -p $(dir $@) && cat $< | $(KNP) -tab -dpnd-fast -read-feature > $@ || rm -f $@
 
 # add_sems.py
 $(ADD_SEMS_KNPS): $(ADD_SEMS_KNP_DIR)/%.knp: $(ORIG_KNP_DIR)/%.knp
